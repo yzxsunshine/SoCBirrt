@@ -938,22 +938,51 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 
 
     double sigma = 0.0;  //
-    SensorConfiguration sc(GetEnv(), sensorDeltaTime);
+/*    SensorConfiguration sc(GetEnv(), sensorDeltaTime);
     while (endTime - startTime < params->timelimit) {
     	// Generate new goal
     	TaskSpaceRegion tsr;
     	RaveVector<dReal> newGoal = sc.ReadSensorData(endTime);
     	tsr.T0_w.trans = newGoal;
+    	tsr.T0_w.rot.Set4(0, 0, 0, 1);
+    	tsr.Tw_e.trans.Set3(0, 0, 0.05);
+    	tsr.Tw_e.rot.Set4(0, 0, 0, 1);
+    	tsr.Bw[3][0] = -PI / 2;
+    	tsr.Bw[3][1] = PI / 2;
+    	tsr.Bw[4][0] = -PI / 2;
+    	tsr.Bw[4][1] = PI / 2;
+    	tsr.Bw[5][0] = -PI / 2;
+    	tsr.Bw[5][1] = PI / 2;
+
     	// Estimate planning & execution time
     	double estimated_time = 0.0;
     	// Calculate sigma
+    	// first get transform of end effector
+    	Transform T0_s = robot->GetActiveManipulator()->GetEndEffectorTransform();
+    	std::vector<dReal> dx;
+    	dReal distMag = tsr.DistanceToTSR(T0_s, dx);
+    	dReal transDist = sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
+    	std::vector<dReal> curConfig;
+    	robot->GetActiveDOFValues(curConfig);
+    	dReal planningTime = EstimatePlanningTime(transDist, curConfig);
+    	dReal sigma = planningTime * sc.GetVelocityMagitude();
 
+    	// Set Bound, may change ball to a surface
+    	tsr.Bw[0][0] = -sigma;
+		tsr.Bw[0][1] = sigma;
+		tsr.Bw[1][0] = -sigma;
+		tsr.Bw[1][1] = sigma;
+		tsr.Bw[2][0] = -sigma;
+		tsr.Bw[2][1] = sigma;
+
+*/
     	bSuccess = _pTCplanner->PlanPath(ptraj);
-    	// Merge Tree
+/*    	// Merge Tree
     	endTime = timeGetThreadTime();
     	double deltTime = endTime - lastTime;
     	lastTime = endTime;
     }
+*/
     if(bSuccess == PS_HasSolution)
 		_plannerState = PS_PlanSucceeded;
 	else
@@ -1509,4 +1538,11 @@ bool SoCBirrtProblem::SetCamView(ostream& sout, istream& sinput)
     
     GetEnv()->GetViewer()->SetCamera(camtm);
     return true;
+}
+
+dReal SoCBirrtProblem::EstimatePlanningTime(dReal WSDist, std::vector<dReal>& q) {
+	dReal planningTime = 0.0;
+	planningTime += _planning_alpha * WSDist;
+
+	return planningTime;
 }

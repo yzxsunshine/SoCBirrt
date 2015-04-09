@@ -27,6 +27,11 @@ public:
 	void SetInitTSR(RaveVector<dReal> goal) {
 		m_goal = goal;
 	}
+
+	dReal GetVelocityMagitude() {
+		return m_velMag;
+	}
+
 	RaveVector<dReal> ReadSensorData(double curTime) {
 #ifdef REAL_SENSOR
 

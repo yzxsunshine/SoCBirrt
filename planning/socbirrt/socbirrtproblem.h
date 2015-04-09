@@ -114,6 +114,8 @@ private:
     /// clears objects drawn by SoCBirrt planner and problem
     bool ClearDrawn(ostream& sout, istream& sinput);
 
+    dReal EstimatePlanningTime(dReal WSDist, std::vector<dReal>& q);
+
     RobotBasePtr robot;
     string _strRRTPlannerName;
 
@@ -128,6 +130,9 @@ private:
     vector<KinBody::JointPtr> _limadj_joints; 
     vector<vector<dReal> > _limadj_lowers; 
     vector<vector<dReal> > _limadj_uppers;
+
+    // parameters to estimate planning time
+    dReal _planning_alpha;
 };
 
 #endif
