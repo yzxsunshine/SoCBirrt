@@ -30,6 +30,7 @@
     \brief Implements the cbirrt problem class.
  */
 #include "stdafx.h"
+#include "SensorConfiguration.h"
 
 std::vector<GraphHandlePtr> graphptrs;
 
@@ -691,6 +692,7 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     double endTime = 0.0;
     double lastTime = 0.0;
     double sensorDeltaTime = 0.030; // 30 milisecond per frame
+    double velMag = 0.001;
 
     string filename = "cmovetraj.txt";
     string smoothtrajfilename;
@@ -821,6 +823,14 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
         { 
                sinput >> bAllowLimAdj; 
         }
+        else if( stricmp(cmd.c_str(), "sensorfps") == 0 )
+		{
+			   sinput >> sensorDeltaTime;
+		}
+        else if( stricmp(cmd.c_str(), "goalvelocitymagnitude") == 0 )
+		{
+			   sinput >> velMag;
+		}
         else break;
         if( !sinput ) {
             RAVELOG_DEBUG("failed\n");
@@ -853,8 +863,8 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
         params->vgoalconfig.push_back(goals[i]);
 
 
-    PlannerBasePtr _pTCplanner; 
-
+    PlannerBasePtr _pTCplanner;
+    //boost::shared_ptr<SoCBirrtPlanner> _pTCplanner;
 
     TrajectoryBasePtr ptraj = RaveCreateTrajectory(GetEnv(),"");
     ptraj->Init(robot->GetActiveConfigurationSpecification());
@@ -877,8 +887,6 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     stringstream outputstream;
     stringstream command;
     command << "GetOutputMessage";
-
-
 
     /* Send over pointer to our planner state */
     params->pplannerstate = &_plannerState;
@@ -938,7 +946,12 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 
 
     double sigma = 0.0;  //
-/*    SensorConfiguration sc(GetEnv(), sensorDeltaTime);
+    SensorConfiguration sc(GetEnv(), sensorDeltaTime, velMag);
+    std::vector<dReal> curConfig, goalConfig;
+    robot->GetActiveDOFValues(curConfig);
+    RaveVector<dReal> goal;
+    goal.Set3(0, 0, 0);
+    sc.SetInitGoal(goal);
     while (endTime - startTime < params->timelimit) {
     	// Generate new goal
     	TaskSpaceRegion tsr;
@@ -954,6 +967,12 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     	tsr.Bw[5][0] = -PI / 2;
     	tsr.Bw[5][1] = PI / 2;
 
+    	//robot->GetActiveDOFValues(curConfig);
+    	// move robot to original place for testing
+    	robot->GetController()->SetDesired(curConfig);
+    	while(!robot->GetController()->IsDone()) {
+			 boost::this_thread::sleep(boost::posix_time::milliseconds(1));
+		}
     	// Estimate planning & execution time
     	double estimated_time = 0.0;
     	// Calculate sigma
@@ -962,8 +981,6 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     	std::vector<dReal> dx;
     	dReal distMag = tsr.DistanceToTSR(T0_s, dx);
     	dReal transDist = sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
-    	std::vector<dReal> curConfig;
-    	robot->GetActiveDOFValues(curConfig);
     	dReal planningTime = EstimatePlanningTime(transDist, curConfig);
     	dReal sigma = planningTime * sc.GetVelocityMagitude();
 
@@ -975,14 +992,32 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 		tsr.Bw[2][0] = -sigma;
 		tsr.Bw[2][1] = sigma;
 
-*/
+		TaskSpaceRegionChain tsrc;
+		tsrc.AddTSR(tsr);
+		tsrc.SetParameters(false, true, false);
+		tsrc.Initialize(GetEnv());
+
+		std::vector<TaskSpaceRegionChain> tsrChains;
+		tsrChains.push_back(tsrc);
+
+		bool doSampling = false;
+		//_pTCplanner->SetTSR(params->vTSRChains, curConfig, goalConfig, doSampling);
+		params->breinitplan = true;
+		//params->vTSRChains = tsrChains;
+		params->vinitialconfig = curConfig;
+		params->vgoalconfig = goalConfig;
+		_pTCplanner->InitPlan(robot, params);
     	bSuccess = _pTCplanner->PlanPath(ptraj);
-/*    	// Merge Tree
+    	// Merge Tree
+    	robot->GetController()->SetPath(ptraj);
+    	while(!robot->GetController()->IsDone()) {
+    		 boost::this_thread::sleep(boost::posix_time::milliseconds(1));
+    	}
     	endTime = timeGetThreadTime();
     	double deltTime = endTime - lastTime;
     	lastTime = endTime;
     }
-*/
+
     if(bSuccess == PS_HasSolution)
 		_plannerState = PS_PlanSucceeded;
 	else

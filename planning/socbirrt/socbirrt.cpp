@@ -127,6 +127,12 @@ bool SoCBirrtPlanner::InitPlan(RobotBasePtr  pbase, PlannerParametersConstPtr pp
     
     _pRobot = pbase;
     
+    if (_parameters->breinitplan) {
+    	bool dosampling;
+    	SetTSR(_parameters->vTSRChains, _parameters->vinitialconfig, _parameters->vgoalconfig, dosampling);
+    	return true;
+    }
+
     RAVELOG_DEBUG("RrtPlanner: Using Default Distance Function\n");
     bdelete_distmetric = true;
     pdistmetric = new SoCBirrtDistanceMetric(this);

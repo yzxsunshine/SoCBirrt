@@ -115,6 +115,12 @@ public:
     bool deserialize(std::stringstream& _ss); ///< parse a string to set the values of the TSR Chain
     bool deserialize_from_matlab(RobotBasePtr  robot, EnvironmentBasePtr penv_in, std::istream& _ss); ///< parse a string from matlab to set the values of the TSR Chain
 
+    void SetParameters(bool sampleStart, bool sampleGoal, bool constrainToChain) {
+    	bSampleStartFromChain = sampleStart;
+    	bSampleGoalFromChain = sampleGoal;
+    	bConstrainToChain = constrainToChain;
+    }
+
 private:
 
     void DestoryRobotizedTSRChain(); ///< delete the virtual manipulator from the environment

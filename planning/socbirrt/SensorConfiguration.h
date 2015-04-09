@@ -12,7 +12,7 @@
 
 class SensorConfiguration {
 public:
-	SensorConfiguration(EnvironmentBasePtr penv, double deltaTime) : m_prevTime(-1.0), m_deltaTime(deltaTime), m_env(penv) {
+	SensorConfiguration(EnvironmentBasePtr penv, double deltaTime, double velMag) : m_prevTime(-1.0), m_deltaTime(deltaTime), m_velMag(velMag), m_env(penv) {
 
 	}
 	virtual ~SensorConfiguration();
@@ -24,7 +24,7 @@ private:
 	EnvironmentBasePtr m_env;
 	RaveVector<dReal> m_goal;
 public:
-	void SetInitTSR(RaveVector<dReal> goal) {
+	void SetInitGoal(RaveVector<dReal> goal) {
 		m_goal = goal;
 	}
 

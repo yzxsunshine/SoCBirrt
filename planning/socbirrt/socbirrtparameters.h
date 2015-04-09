@@ -36,7 +36,7 @@
 class SoCBirrtParameters : public PlannerBase::PlannerParameters
 {
 public:
-    SoCBirrtParameters() : bgrabbed(false), Psample(0), bsmoothpath(true), smoothingitrs(-1), bsamplingstart(false), bsamplinggoal(false), timelimit(-1.0), bProcessing(false), bikfastsinglesolution(true)
+    SoCBirrtParameters() : breinitplan(false), bgrabbed(false), Psample(0), bsmoothpath(true), smoothingitrs(-1), bsamplingstart(false), bsamplinggoal(false), timelimit(-1.0), bProcessing(false), bikfastsinglesolution(true)
     {
         _vXMLParameters.push_back("tsrchain");
         _vXMLParameters.push_back("grabbed");
@@ -52,9 +52,10 @@ public:
         _vXMLParameters.push_back("ikguess");
         _vXMLParameters.push_back("bikfastsinglesolution");
         _vXMLParameters.push_back("pplannerstate");
-
+        _vXMLParameters.push_back("reinitplan");
     }
     bool bgrabbed; ///< are we grabbing an object?
+    bool breinitplan; ///< are we doing replanning?
 
     bool bsamplingstart; ///< are there TSRs specified for start sampling
     bool bsamplinggoal; ///< are there TSRs specified for goal sampling
@@ -94,7 +95,7 @@ protected:
             O << "</tsrchain>"<<endl;            
         }
 
-
+		O << "<reinitplan>" << breinitplan << "</reinitplan>" << endl;
         O << "<grabbed>" << bgrabbed << "</grabbed>" << endl;
 
         O << "<samplingstart>" << bsamplingstart << "</samplingstart>" << endl;
