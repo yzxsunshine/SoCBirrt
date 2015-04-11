@@ -1,0 +1,1 @@
+/usr/bin/c++  -fPIC  -L/usr/lib -L/usr/lib    -shared -Wl,-soname,libsocbirrt.so -o libsocbirrt.so CMakeFiles/socbirrt.dir/socbirrtmain.o CMakeFiles/socbirrt.dir/TaskSpaceRegion.o CMakeFiles/socbirrt.dir/socbirrt.o CMakeFiles/socbirrt.dir/socbirrtproblem.o -lopenrave0.8 -lqhull -lnewmat 
