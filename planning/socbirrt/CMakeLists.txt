@@ -8,7 +8,7 @@ if (DEFINED ENV{ROS_ROOT})
   include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
   rosbuild_init()
   set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
-  rosbuild_add_library(socbirrt socbirrtmain.cpp TaskSpaceRegion.cpp socbirrt.cpp socbirrtproblem.cpp)
+  rosbuild_add_library(socbirrt socbirrtmain.cpp TaskSpaceRegion.cpp SensorConfiguration.cpp socbirrt.cpp socbirrtproblem.cpp)
   target_link_libraries(socbirrt qhull newmat)
 
 else (DEFINED ENV{ROS_ROOT})
@@ -32,7 +32,7 @@ else (DEFINED ENV{ROS_ROOT})
   endif( NOT OPENRAVE_FOUND )
 
   link_directories(${OPENRAVE_LINK_DIRS})
-  add_library(socbirrt SHARED socbirrtmain.cpp TaskSpaceRegion.cpp socbirrt.cpp socbirrtproblem.cpp)
+  add_library(socbirrt SHARED socbirrtmain.cpp TaskSpaceRegion.cpp SensorConfiguration.cpp socbirrt.cpp socbirrtproblem.cpp)
   set_target_properties(socbirrt PROPERTIES
                         LINK_FLAGS ${OPENRAVE_LINK_FLAGS}
                         COMPILE_FLAGS ${OPENRAVE_CXXFLAGS})

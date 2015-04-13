@@ -1738,7 +1738,6 @@ bool SoCBirrtPlanner::SetTSR(std::vector<TaskSpaceRegionChain>& tsrChains, std::
 
 				start_index++;
 			}
-			printf("hehe1\n");
 			stringstream s;
 			tempjointvals = _pInitConfig;
 			ClearTSRChainValues();
@@ -1765,7 +1764,6 @@ bool SoCBirrtPlanner::SetTSR(std::vector<TaskSpaceRegionChain>& tsrChains, std::
 
 				return false;
 			}
-			printf("hehe2\n");
 
 			if(_CheckCollision(_pInitConfig))
 			{
@@ -1778,8 +1776,6 @@ bool SoCBirrtPlanner::SetTSR(std::vector<TaskSpaceRegionChain>& tsrChains, std::
 				_outputstream << "Error: Start configuration in collision\n";
 				return false;
 			}
-			printf("hehe3\n");
-
 
 			// set up the start states
 			_pActiveNode = new RrtNode(GetNumDOF(),false,num_starts+projectednode_id);
@@ -1788,7 +1784,6 @@ bool SoCBirrtPlanner::SetTSR(std::vector<TaskSpaceRegionChain>& tsrChains, std::
 			_pForwardTree->AddNode(*_pActiveNode);
 			delete _pActiveNode;
 			RAVELOG_INFO("Checking for start projection...\n");
-			printf("hehe4\n");
 
 			for(int i = 0; i < GetNumDOF() - numTSRMimicDOF; i++)
 			{
@@ -1812,7 +1807,6 @@ bool SoCBirrtPlanner::SetTSR(std::vector<TaskSpaceRegionChain>& tsrChains, std::
 				break;
 			   }
 			}
-			printf("hehe5\n");
 
 			num_starts++;
 			if(start_index == (int)_parameters->vinitialconfig.size())

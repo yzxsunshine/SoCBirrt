@@ -6,19 +6,19 @@
 
 #IncludeRegexTransform: 
 
-/home/jason/RBE595/CBiRRT/planning/manipulation2/manipulation.cpp
+/home/jason/RBE595/FP/SoCBirrt/planning/manipulation2/manipulation.cpp
 stdafx.h
-/home/jason/RBE595/CBiRRT/planning/manipulation2/stdafx.h
+/home/jason/RBE595/FP/SoCBirrt/planning/manipulation2/stdafx.h
 
-/home/jason/RBE595/CBiRRT/planning/manipulation2/manipulation.h
+/home/jason/RBE595/FP/SoCBirrt/planning/manipulation2/manipulation.h
 
-/home/jason/RBE595/CBiRRT/planning/manipulation2/manipulationmain.cpp
+/home/jason/RBE595/FP/SoCBirrt/planning/manipulation2/manipulationmain.cpp
 stdafx.h
-/home/jason/RBE595/CBiRRT/planning/manipulation2/stdafx.h
+/home/jason/RBE595/FP/SoCBirrt/planning/manipulation2/stdafx.h
 rave/plugin.h
 -
 
-/home/jason/RBE595/CBiRRT/planning/manipulation2/stdafx.h
+/home/jason/RBE595/FP/SoCBirrt/planning/manipulation2/stdafx.h
 assert.h
 -
 cstdio
@@ -64,17 +64,17 @@ boost/regex.hpp
 boost/shared_ptr.hpp
 -
 manipulation.h
-/home/jason/RBE595/CBiRRT/planning/manipulation2/manipulation.h
+/home/jason/RBE595/FP/SoCBirrt/planning/manipulation2/manipulation.h
 trajectoryproblem.h
-/home/jason/RBE595/CBiRRT/planning/manipulation2/trajectoryproblem.h
+/home/jason/RBE595/FP/SoCBirrt/planning/manipulation2/trajectoryproblem.h
 
-/home/jason/RBE595/CBiRRT/planning/manipulation2/trajectoryproblem.cpp
+/home/jason/RBE595/FP/SoCBirrt/planning/manipulation2/trajectoryproblem.cpp
 stdafx.h
-/home/jason/RBE595/CBiRRT/planning/manipulation2/stdafx.h
+/home/jason/RBE595/FP/SoCBirrt/planning/manipulation2/stdafx.h
 algorithm
 -
 
-/home/jason/RBE595/CBiRRT/planning/manipulation2/trajectoryproblem.h
+/home/jason/RBE595/FP/SoCBirrt/planning/manipulation2/trajectoryproblem.h
 
 /usr/include/openrave-0.8/openrave/collisionchecker.h
 

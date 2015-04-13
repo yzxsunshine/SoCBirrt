@@ -32,6 +32,7 @@
 #ifndef CPROBLEM_H
 #define CPROBLEM_H
 
+#include "SensorConfiguration.h"
 /// Parses input from python and matlab and calls cbirrtplanner, also contains some other useful openrave functions.
 class SoCBirrtProblem : public ProblemInstance
 {

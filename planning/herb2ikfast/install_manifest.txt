@@ -1,1 +1,1 @@
-/home/jason/RBE595/CBiRRT/planning/herb2ikfast/../../plugins/libHerb2IK.so
+/home/jason/RBE595/FP/SoCBirrt/planning/herb2ikfast/../../plugins/libHerb2IK.so

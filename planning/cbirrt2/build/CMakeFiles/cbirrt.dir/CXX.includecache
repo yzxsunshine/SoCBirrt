@@ -6,35 +6,35 @@
 
 #IncludeRegexTransform: 
 
-/home/jason/RBE595/CBiRRT/planning/cbirrt2/TaskSpaceRegion.cpp
+/home/jason/RBE595/FP/SoCBirrt/planning/cbirrt2/TaskSpaceRegion.cpp
 stdafx.h
-/home/jason/RBE595/CBiRRT/planning/cbirrt2/stdafx.h
+/home/jason/RBE595/FP/SoCBirrt/planning/cbirrt2/stdafx.h
 
-/home/jason/RBE595/CBiRRT/planning/cbirrt2/TaskSpaceRegion.h
+/home/jason/RBE595/FP/SoCBirrt/planning/cbirrt2/TaskSpaceRegion.h
 
-/home/jason/RBE595/CBiRRT/planning/cbirrt2/cbirrt.cpp
+/home/jason/RBE595/FP/SoCBirrt/planning/cbirrt2/cbirrt.cpp
 stdafx.h
-/home/jason/RBE595/CBiRRT/planning/cbirrt2/stdafx.h
+/home/jason/RBE595/FP/SoCBirrt/planning/cbirrt2/stdafx.h
 
-/home/jason/RBE595/CBiRRT/planning/cbirrt2/cbirrt.h
+/home/jason/RBE595/FP/SoCBirrt/planning/cbirrt2/cbirrt.h
 sstream
 -
 
-/home/jason/RBE595/CBiRRT/planning/cbirrt2/cbirrtmain.cpp
+/home/jason/RBE595/FP/SoCBirrt/planning/cbirrt2/cbirrtmain.cpp
 stdafx.h
-/home/jason/RBE595/CBiRRT/planning/cbirrt2/stdafx.h
+/home/jason/RBE595/FP/SoCBirrt/planning/cbirrt2/stdafx.h
 rave/plugin.h
 -
 
-/home/jason/RBE595/CBiRRT/planning/cbirrt2/cbirrtparameters.h
+/home/jason/RBE595/FP/SoCBirrt/planning/cbirrt2/cbirrtparameters.h
 
-/home/jason/RBE595/CBiRRT/planning/cbirrt2/cbirrtproblem.cpp
+/home/jason/RBE595/FP/SoCBirrt/planning/cbirrt2/cbirrtproblem.cpp
 stdafx.h
-/home/jason/RBE595/CBiRRT/planning/cbirrt2/stdafx.h
+/home/jason/RBE595/FP/SoCBirrt/planning/cbirrt2/stdafx.h
 
-/home/jason/RBE595/CBiRRT/planning/cbirrt2/cbirrtproblem.h
+/home/jason/RBE595/FP/SoCBirrt/planning/cbirrt2/cbirrtproblem.h
 
-/home/jason/RBE595/CBiRRT/planning/cbirrt2/stdafx.h
+/home/jason/RBE595/FP/SoCBirrt/planning/cbirrt2/stdafx.h
 assert.h
 -
 cstdio
@@ -102,13 +102,13 @@ newmat/newmatap.h
 newmat/newmatio.h
 -
 TaskSpaceRegion.h
-/home/jason/RBE595/CBiRRT/planning/cbirrt2/TaskSpaceRegion.h
+/home/jason/RBE595/FP/SoCBirrt/planning/cbirrt2/TaskSpaceRegion.h
 cbirrtparameters.h
-/home/jason/RBE595/CBiRRT/planning/cbirrt2/cbirrtparameters.h
+/home/jason/RBE595/FP/SoCBirrt/planning/cbirrt2/cbirrtparameters.h
 cbirrtproblem.h
-/home/jason/RBE595/CBiRRT/planning/cbirrt2/cbirrtproblem.h
+/home/jason/RBE595/FP/SoCBirrt/planning/cbirrt2/cbirrtproblem.h
 cbirrt.h
-/home/jason/RBE595/CBiRRT/planning/cbirrt2/cbirrt.h
+/home/jason/RBE595/FP/SoCBirrt/planning/cbirrt2/cbirrt.h
 
 /usr/include/openrave-0.8/openrave/collisionchecker.h
 

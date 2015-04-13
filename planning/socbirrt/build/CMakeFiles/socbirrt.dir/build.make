@@ -32,10 +32,10 @@ CMAKE_COMMAND = /usr/bin/cmake
 RM = /usr/bin/cmake -E remove -f
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/jason/RBE595/CBiRRT/planning/socbirrt
+CMAKE_SOURCE_DIR = /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/jason/RBE595/CBiRRT/planning/socbirrt/build
+CMAKE_BINARY_DIR = /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/build
 
 # Include any dependencies generated for this target.
 include CMakeFiles/socbirrt.dir/depend.make
@@ -48,17 +48,17 @@ include CMakeFiles/socbirrt.dir/flags.make
 
 CMakeFiles/socbirrt.dir/socbirrtmain.o: CMakeFiles/socbirrt.dir/flags.make
 CMakeFiles/socbirrt.dir/socbirrtmain.o: ../socbirrtmain.cpp
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/jason/RBE595/CBiRRT/planning/socbirrt/build/CMakeFiles $(CMAKE_PROGRESS_1)
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/build/CMakeFiles $(CMAKE_PROGRESS_1)
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/socbirrt.dir/socbirrtmain.o"
-	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -o CMakeFiles/socbirrt.dir/socbirrtmain.o -c /home/jason/RBE595/CBiRRT/planning/socbirrt/socbirrtmain.cpp
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -o CMakeFiles/socbirrt.dir/socbirrtmain.o -c /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrtmain.cpp
 
 CMakeFiles/socbirrt.dir/socbirrtmain.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/socbirrt.dir/socbirrtmain.i"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -E /home/jason/RBE595/CBiRRT/planning/socbirrt/socbirrtmain.cpp > CMakeFiles/socbirrt.dir/socbirrtmain.i
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -E /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrtmain.cpp > CMakeFiles/socbirrt.dir/socbirrtmain.i
 
 CMakeFiles/socbirrt.dir/socbirrtmain.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/socbirrt.dir/socbirrtmain.s"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -S /home/jason/RBE595/CBiRRT/planning/socbirrt/socbirrtmain.cpp -o CMakeFiles/socbirrt.dir/socbirrtmain.s
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -S /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrtmain.cpp -o CMakeFiles/socbirrt.dir/socbirrtmain.s
 
 CMakeFiles/socbirrt.dir/socbirrtmain.o.requires:
 .PHONY : CMakeFiles/socbirrt.dir/socbirrtmain.o.requires
@@ -71,17 +71,17 @@ CMakeFiles/socbirrt.dir/socbirrtmain.o.provides.build: CMakeFiles/socbirrt.dir/s
 
 CMakeFiles/socbirrt.dir/TaskSpaceRegion.o: CMakeFiles/socbirrt.dir/flags.make
 CMakeFiles/socbirrt.dir/TaskSpaceRegion.o: ../TaskSpaceRegion.cpp
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/jason/RBE595/CBiRRT/planning/socbirrt/build/CMakeFiles $(CMAKE_PROGRESS_2)
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/build/CMakeFiles $(CMAKE_PROGRESS_2)
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/socbirrt.dir/TaskSpaceRegion.o"
-	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -o CMakeFiles/socbirrt.dir/TaskSpaceRegion.o -c /home/jason/RBE595/CBiRRT/planning/socbirrt/TaskSpaceRegion.cpp
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -o CMakeFiles/socbirrt.dir/TaskSpaceRegion.o -c /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/TaskSpaceRegion.cpp
 
 CMakeFiles/socbirrt.dir/TaskSpaceRegion.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/socbirrt.dir/TaskSpaceRegion.i"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -E /home/jason/RBE595/CBiRRT/planning/socbirrt/TaskSpaceRegion.cpp > CMakeFiles/socbirrt.dir/TaskSpaceRegion.i
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -E /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/TaskSpaceRegion.cpp > CMakeFiles/socbirrt.dir/TaskSpaceRegion.i
 
 CMakeFiles/socbirrt.dir/TaskSpaceRegion.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/socbirrt.dir/TaskSpaceRegion.s"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -S /home/jason/RBE595/CBiRRT/planning/socbirrt/TaskSpaceRegion.cpp -o CMakeFiles/socbirrt.dir/TaskSpaceRegion.s
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -S /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/TaskSpaceRegion.cpp -o CMakeFiles/socbirrt.dir/TaskSpaceRegion.s
 
 CMakeFiles/socbirrt.dir/TaskSpaceRegion.o.requires:
 .PHONY : CMakeFiles/socbirrt.dir/TaskSpaceRegion.o.requires
@@ -92,19 +92,42 @@ CMakeFiles/socbirrt.dir/TaskSpaceRegion.o.provides: CMakeFiles/socbirrt.dir/Task
 
 CMakeFiles/socbirrt.dir/TaskSpaceRegion.o.provides.build: CMakeFiles/socbirrt.dir/TaskSpaceRegion.o
 
+CMakeFiles/socbirrt.dir/SensorConfiguration.o: CMakeFiles/socbirrt.dir/flags.make
+CMakeFiles/socbirrt.dir/SensorConfiguration.o: ../SensorConfiguration.cpp
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/build/CMakeFiles $(CMAKE_PROGRESS_3)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/socbirrt.dir/SensorConfiguration.o"
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -o CMakeFiles/socbirrt.dir/SensorConfiguration.o -c /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/SensorConfiguration.cpp
+
+CMakeFiles/socbirrt.dir/SensorConfiguration.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/socbirrt.dir/SensorConfiguration.i"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -E /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/SensorConfiguration.cpp > CMakeFiles/socbirrt.dir/SensorConfiguration.i
+
+CMakeFiles/socbirrt.dir/SensorConfiguration.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/socbirrt.dir/SensorConfiguration.s"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -S /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/SensorConfiguration.cpp -o CMakeFiles/socbirrt.dir/SensorConfiguration.s
+
+CMakeFiles/socbirrt.dir/SensorConfiguration.o.requires:
+.PHONY : CMakeFiles/socbirrt.dir/SensorConfiguration.o.requires
+
+CMakeFiles/socbirrt.dir/SensorConfiguration.o.provides: CMakeFiles/socbirrt.dir/SensorConfiguration.o.requires
+	$(MAKE) -f CMakeFiles/socbirrt.dir/build.make CMakeFiles/socbirrt.dir/SensorConfiguration.o.provides.build
+.PHONY : CMakeFiles/socbirrt.dir/SensorConfiguration.o.provides
+
+CMakeFiles/socbirrt.dir/SensorConfiguration.o.provides.build: CMakeFiles/socbirrt.dir/SensorConfiguration.o
+
 CMakeFiles/socbirrt.dir/socbirrt.o: CMakeFiles/socbirrt.dir/flags.make
 CMakeFiles/socbirrt.dir/socbirrt.o: ../socbirrt.cpp
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/jason/RBE595/CBiRRT/planning/socbirrt/build/CMakeFiles $(CMAKE_PROGRESS_3)
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/build/CMakeFiles $(CMAKE_PROGRESS_4)
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/socbirrt.dir/socbirrt.o"
-	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -o CMakeFiles/socbirrt.dir/socbirrt.o -c /home/jason/RBE595/CBiRRT/planning/socbirrt/socbirrt.cpp
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -o CMakeFiles/socbirrt.dir/socbirrt.o -c /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrt.cpp
 
 CMakeFiles/socbirrt.dir/socbirrt.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/socbirrt.dir/socbirrt.i"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -E /home/jason/RBE595/CBiRRT/planning/socbirrt/socbirrt.cpp > CMakeFiles/socbirrt.dir/socbirrt.i
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -E /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrt.cpp > CMakeFiles/socbirrt.dir/socbirrt.i
 
 CMakeFiles/socbirrt.dir/socbirrt.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/socbirrt.dir/socbirrt.s"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -S /home/jason/RBE595/CBiRRT/planning/socbirrt/socbirrt.cpp -o CMakeFiles/socbirrt.dir/socbirrt.s
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -S /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrt.cpp -o CMakeFiles/socbirrt.dir/socbirrt.s
 
 CMakeFiles/socbirrt.dir/socbirrt.o.requires:
 .PHONY : CMakeFiles/socbirrt.dir/socbirrt.o.requires
@@ -117,17 +140,17 @@ CMakeFiles/socbirrt.dir/socbirrt.o.provides.build: CMakeFiles/socbirrt.dir/socbi
 
 CMakeFiles/socbirrt.dir/socbirrtproblem.o: CMakeFiles/socbirrt.dir/flags.make
 CMakeFiles/socbirrt.dir/socbirrtproblem.o: ../socbirrtproblem.cpp
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/jason/RBE595/CBiRRT/planning/socbirrt/build/CMakeFiles $(CMAKE_PROGRESS_4)
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/build/CMakeFiles $(CMAKE_PROGRESS_5)
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/socbirrt.dir/socbirrtproblem.o"
-	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -o CMakeFiles/socbirrt.dir/socbirrtproblem.o -c /home/jason/RBE595/CBiRRT/planning/socbirrt/socbirrtproblem.cpp
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -o CMakeFiles/socbirrt.dir/socbirrtproblem.o -c /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrtproblem.cpp
 
 CMakeFiles/socbirrt.dir/socbirrtproblem.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/socbirrt.dir/socbirrtproblem.i"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -E /home/jason/RBE595/CBiRRT/planning/socbirrt/socbirrtproblem.cpp > CMakeFiles/socbirrt.dir/socbirrtproblem.i
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -E /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrtproblem.cpp > CMakeFiles/socbirrt.dir/socbirrtproblem.i
 
 CMakeFiles/socbirrt.dir/socbirrtproblem.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/socbirrt.dir/socbirrtproblem.s"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -S /home/jason/RBE595/CBiRRT/planning/socbirrt/socbirrtproblem.cpp -o CMakeFiles/socbirrt.dir/socbirrtproblem.s
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -I/usr/include/openrave-0.8 -I/usr/include -DOPENRAVE_DLL -DOPENRAVE_CORE_DLL  -S /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrtproblem.cpp -o CMakeFiles/socbirrt.dir/socbirrtproblem.s
 
 CMakeFiles/socbirrt.dir/socbirrtproblem.o.requires:
 .PHONY : CMakeFiles/socbirrt.dir/socbirrtproblem.o.requires
@@ -142,6 +165,7 @@ CMakeFiles/socbirrt.dir/socbirrtproblem.o.provides.build: CMakeFiles/socbirrt.di
 socbirrt_OBJECTS = \
 "CMakeFiles/socbirrt.dir/socbirrtmain.o" \
 "CMakeFiles/socbirrt.dir/TaskSpaceRegion.o" \
+"CMakeFiles/socbirrt.dir/SensorConfiguration.o" \
 "CMakeFiles/socbirrt.dir/socbirrt.o" \
 "CMakeFiles/socbirrt.dir/socbirrtproblem.o"
 
@@ -150,6 +174,7 @@ socbirrt_EXTERNAL_OBJECTS =
 
 libsocbirrt.so: CMakeFiles/socbirrt.dir/socbirrtmain.o
 libsocbirrt.so: CMakeFiles/socbirrt.dir/TaskSpaceRegion.o
+libsocbirrt.so: CMakeFiles/socbirrt.dir/SensorConfiguration.o
 libsocbirrt.so: CMakeFiles/socbirrt.dir/socbirrt.o
 libsocbirrt.so: CMakeFiles/socbirrt.dir/socbirrtproblem.o
 libsocbirrt.so: CMakeFiles/socbirrt.dir/build.make
@@ -163,6 +188,7 @@ CMakeFiles/socbirrt.dir/build: libsocbirrt.so
 
 CMakeFiles/socbirrt.dir/requires: CMakeFiles/socbirrt.dir/socbirrtmain.o.requires
 CMakeFiles/socbirrt.dir/requires: CMakeFiles/socbirrt.dir/TaskSpaceRegion.o.requires
+CMakeFiles/socbirrt.dir/requires: CMakeFiles/socbirrt.dir/SensorConfiguration.o.requires
 CMakeFiles/socbirrt.dir/requires: CMakeFiles/socbirrt.dir/socbirrt.o.requires
 CMakeFiles/socbirrt.dir/requires: CMakeFiles/socbirrt.dir/socbirrtproblem.o.requires
 .PHONY : CMakeFiles/socbirrt.dir/requires
@@ -172,6 +198,6 @@ CMakeFiles/socbirrt.dir/clean:
 .PHONY : CMakeFiles/socbirrt.dir/clean
 
 CMakeFiles/socbirrt.dir/depend:
-	cd /home/jason/RBE595/CBiRRT/planning/socbirrt/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/jason/RBE595/CBiRRT/planning/socbirrt /home/jason/RBE595/CBiRRT/planning/socbirrt /home/jason/RBE595/CBiRRT/planning/socbirrt/build /home/jason/RBE595/CBiRRT/planning/socbirrt/build /home/jason/RBE595/CBiRRT/planning/socbirrt/build/CMakeFiles/socbirrt.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/build /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/build /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/build/CMakeFiles/socbirrt.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/socbirrt.dir/depend
 

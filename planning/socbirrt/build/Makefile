@@ -36,10 +36,10 @@ CMAKE_COMMAND = /usr/bin/cmake
 RM = /usr/bin/cmake -E remove -f
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/jason/RBE595/CBiRRT/planning/socbirrt
+CMAKE_SOURCE_DIR = /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/jason/RBE595/CBiRRT/planning/socbirrt/build
+CMAKE_BINARY_DIR = /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -107,9 +107,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/jason/RBE595/CBiRRT/planning/socbirrt/build/CMakeFiles /home/jason/RBE595/CBiRRT/planning/socbirrt/build/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/build/CMakeFiles /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/build/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/jason/RBE595/CBiRRT/planning/socbirrt/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -148,6 +148,21 @@ socbirrt: cmake_check_build_system
 socbirrt/fast:
 	$(MAKE) -f CMakeFiles/socbirrt.dir/build.make CMakeFiles/socbirrt.dir/build
 .PHONY : socbirrt/fast
+
+# target to build an object file
+SensorConfiguration.o:
+	$(MAKE) -f CMakeFiles/socbirrt.dir/build.make CMakeFiles/socbirrt.dir/SensorConfiguration.o
+.PHONY : SensorConfiguration.o
+
+# target to preprocess a source file
+SensorConfiguration.i:
+	$(MAKE) -f CMakeFiles/socbirrt.dir/build.make CMakeFiles/socbirrt.dir/SensorConfiguration.i
+.PHONY : SensorConfiguration.i
+
+# target to generate assembly for a file
+SensorConfiguration.s:
+	$(MAKE) -f CMakeFiles/socbirrt.dir/build.make CMakeFiles/socbirrt.dir/SensorConfiguration.s
+.PHONY : SensorConfiguration.s
 
 # target to build an object file
 TaskSpaceRegion.o:
@@ -222,6 +237,9 @@ help:
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... socbirrt"
+	@echo "... SensorConfiguration.o"
+	@echo "... SensorConfiguration.i"
+	@echo "... SensorConfiguration.s"
 	@echo "... TaskSpaceRegion.o"
 	@echo "... TaskSpaceRegion.i"
 	@echo "... TaskSpaceRegion.s"

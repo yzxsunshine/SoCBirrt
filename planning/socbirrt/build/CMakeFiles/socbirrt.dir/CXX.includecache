@@ -6,27 +6,45 @@
 
 #IncludeRegexTransform: 
 
-/home/jason/RBE595/CBiRRT/planning/socbirrt/SensorConfiguration.h
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/SensorConfiguration.cpp
+SensorConfiguration.h
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/SensorConfiguration.h
+
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/SensorConfiguration.h
 stdafx.h
-/home/jason/RBE595/CBiRRT/planning/socbirrt/stdafx.h
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/stdafx.h
 
-/home/jason/RBE595/CBiRRT/planning/socbirrt/TaskSpaceRegion.h
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/TaskSpaceRegion.cpp
+stdafx.h
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/stdafx.h
 
-/home/jason/RBE595/CBiRRT/planning/socbirrt/socbirrt.h
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/TaskSpaceRegion.h
+
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrt.cpp
+stdafx.h
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/stdafx.h
+
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrt.h
 sstream
 -
 
-/home/jason/RBE595/CBiRRT/planning/socbirrt/socbirrtparameters.h
-
-/home/jason/RBE595/CBiRRT/planning/socbirrt/socbirrtproblem.cpp
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrtmain.cpp
 stdafx.h
-/home/jason/RBE595/CBiRRT/planning/socbirrt/stdafx.h
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/stdafx.h
+rave/plugin.h
+-
+
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrtparameters.h
+
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrtproblem.cpp
+stdafx.h
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/stdafx.h
+
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrtproblem.h
 SensorConfiguration.h
-/home/jason/RBE595/CBiRRT/planning/socbirrt/SensorConfiguration.h
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/SensorConfiguration.h
 
-/home/jason/RBE595/CBiRRT/planning/socbirrt/socbirrtproblem.h
-
-/home/jason/RBE595/CBiRRT/planning/socbirrt/stdafx.h
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/stdafx.h
 assert.h
 -
 cstdio
@@ -96,13 +114,13 @@ newmat/newmatap.h
 newmat/newmatio.h
 -
 TaskSpaceRegion.h
-/home/jason/RBE595/CBiRRT/planning/socbirrt/TaskSpaceRegion.h
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/TaskSpaceRegion.h
 socbirrtparameters.h
-/home/jason/RBE595/CBiRRT/planning/socbirrt/socbirrtparameters.h
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrtparameters.h
 socbirrtproblem.h
-/home/jason/RBE595/CBiRRT/planning/socbirrt/socbirrtproblem.h
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrtproblem.h
 socbirrt.h
-/home/jason/RBE595/CBiRRT/planning/socbirrt/socbirrt.h
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrt.h
 
 /usr/include/openrave-0.8/openrave-core.h
 openrave/openrave.h
@@ -254,6 +272,12 @@ openrave/environment.h
 openrave/openrave.h
 -
 
+/usr/include/openrave-0.8/openrave/plugin.h
+openrave/openrave.h
+-
+boost/format.hpp
+-
+
 /usr/include/openrave-0.8/openrave/plugininfo.h
 
 /usr/include/openrave-0.8/openrave/robot.h
@@ -267,6 +291,10 @@ openrave/openrave.h
 /usr/include/openrave-0.8/openrave/trajectory.h
 
 /usr/include/openrave-0.8/openrave/viewer.h
+
+/usr/include/openrave-0.8/rave/plugin.h
+openrave/plugin.h
+-
 
 /usr/include/openrave-0.8/rave/rave.h
 openrave/openrave.h

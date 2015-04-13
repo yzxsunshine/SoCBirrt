@@ -6,21 +6,21 @@
 
 #IncludeRegexTransform: 
 
-/home/jason/RBE595/CBiRRT/planning/generalik/GeneralIK.cpp
+/home/jason/RBE595/FP/SoCBirrt/planning/generalik/GeneralIK.cpp
 stdafx.h
-/home/jason/RBE595/CBiRRT/planning/generalik/stdafx.h
+/home/jason/RBE595/FP/SoCBirrt/planning/generalik/stdafx.h
 GeneralIK.h
-/home/jason/RBE595/CBiRRT/planning/generalik/GeneralIK.h
+/home/jason/RBE595/FP/SoCBirrt/planning/generalik/GeneralIK.h
 
-/home/jason/RBE595/CBiRRT/planning/generalik/GeneralIK.h
+/home/jason/RBE595/FP/SoCBirrt/planning/generalik/GeneralIK.h
 
-/home/jason/RBE595/CBiRRT/planning/generalik/GeneralIKmain.cpp
+/home/jason/RBE595/FP/SoCBirrt/planning/generalik/GeneralIKmain.cpp
 stdafx.h
-/home/jason/RBE595/CBiRRT/planning/generalik/stdafx.h
+/home/jason/RBE595/FP/SoCBirrt/planning/generalik/stdafx.h
 rave/plugin.h
 -
 
-/home/jason/RBE595/CBiRRT/planning/generalik/stdafx.h
+/home/jason/RBE595/FP/SoCBirrt/planning/generalik/stdafx.h
 assert.h
 -
 cstdio
@@ -76,7 +76,7 @@ newmat/newmatap.h
 newmat/newmatio.h
 -
 GeneralIK.h
-/home/jason/RBE595/CBiRRT/planning/generalik/GeneralIK.h
+/home/jason/RBE595/FP/SoCBirrt/planning/generalik/GeneralIK.h
 
 /usr/include/openrave-0.8/openrave/collisionchecker.h
 

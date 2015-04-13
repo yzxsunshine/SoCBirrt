@@ -30,7 +30,6 @@
     \brief Implements the cbirrt problem class.
  */
 #include "stdafx.h"
-#include "SensorConfiguration.h"
 
 std::vector<GraphHandlePtr> graphptrs;
 
@@ -954,7 +953,7 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     sc.SetInitGoal(goal);
     while (endTime - startTime < params->timelimit) {
     	// Generate new goal
-    	TaskSpaceRegion tsr;
+    	/*TaskSpaceRegion tsr;
     	RaveVector<dReal> newGoal = sc.ReadSensorData(endTime);
     	tsr.T0_w.trans = newGoal;
     	tsr.T0_w.rot.Set4(0, 0, 0, 1);
@@ -966,7 +965,7 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     	tsr.Bw[4][1] = PI / 2;
     	tsr.Bw[5][0] = -PI / 2;
     	tsr.Bw[5][1] = PI / 2;
-
+*/
     	//robot->GetActiveDOFValues(curConfig);
     	// move robot to original place for testing
     	robot->GetController()->SetDesired(curConfig);
@@ -977,7 +976,7 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     	double estimated_time = 0.0;
     	// Calculate sigma
     	// first get transform of end effector
-    	Transform T0_s = robot->GetActiveManipulator()->GetEndEffectorTransform();
+ /*   	Transform T0_s = robot->GetActiveManipulator()->GetEndEffectorTransform();
     	std::vector<dReal> dx;
     	dReal distMag = tsr.DistanceToTSR(T0_s, dx);
     	dReal transDist = sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
@@ -999,7 +998,7 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 
 		std::vector<TaskSpaceRegionChain> tsrChains;
 		tsrChains.push_back(tsrc);
-
+*/
 		bool doSampling = false;
 		//_pTCplanner->SetTSR(params->vTSRChains, curConfig, goalConfig, doSampling);
 		params->breinitplan = true;

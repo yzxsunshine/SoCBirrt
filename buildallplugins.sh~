@@ -3,7 +3,7 @@ set -e
 
 unset ROS_ROOT
 
-for pkg in generalik cbirrt2 socbirrt manipulation2
+for pkg in generalik cbirrt2 manipulation2
 do
    cd planning/$pkg
    make clean
