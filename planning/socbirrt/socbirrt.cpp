@@ -129,7 +129,9 @@ bool SoCBirrtPlanner::InitPlan(RobotBasePtr  pbase, PlannerParametersConstPtr pp
     
     if (_parameters->breinitplan) {
     	bool dosampling;
+    	printf("[socbirrt.cpp-InitPlan-132] Replan\n");
     	SetTSR(_parameters->vTSRChains, _parameters->vinitialconfig, _parameters->vgoalconfig, dosampling);
+    	printf("[socbirrt.cpp-InitPlan-134] Replan Finished\n");
     	return true;
     }
 
@@ -137,7 +139,7 @@ bool SoCBirrtPlanner::InitPlan(RobotBasePtr  pbase, PlannerParametersConstPtr pp
     bdelete_distmetric = true;
     pdistmetric = new SoCBirrtDistanceMetric(this);
     
-
+    printf("[socbirrt.cpp-InitPlan-142] Default Plan\n");
     if( _pRobot.get() == NULL || pdistmetric == NULL ) {
         _pRobot.reset();
         return false;
@@ -208,12 +210,13 @@ bool SoCBirrtPlanner::InitPlan(RobotBasePtr  pbase, PlannerParametersConstPtr pp
         _validRange[i] = _upperLimit[i] - _lowerLimit[i];
         assert(_validRange[i] > 0);
     }
-
+    printf("[socbirrt.cpp-InitPlan-213] Init Trees\n");
     _pForwardTree->_pMakeNext = new MakeNext(_pForwardTree->GetFromGoal(),GetNumDOF(),_pRobot,this);
     _pBackwardTree->_pMakeNext = new MakeNext(_pBackwardTree->GetFromGoal(),GetNumDOF(),_pRobot,this);
 
     RAVELOG_INFO("grabbed: %d\n",_parameters->bgrabbed);
     bool bDoingSampling;
+    printf("[socbirrt.cpp-InitPlan-219] Set Chain\n");
 	if (!SetTSR(_parameters->vTSRChains, _parameters->vinitialconfig, _parameters->vgoalconfig, bDoingSampling)) {
 		return false;
 	}
@@ -232,7 +235,7 @@ bool SoCBirrtPlanner::InitPlan(RobotBasePtr  pbase, PlannerParametersConstPtr pp
 
     bSmoothPath = _parameters->bsmoothpath;
 
-
+    printf("[socbirrt.cpp-InitPlan-238] Create IK\n");
     _pIkSolver = RaveCreateIkSolver(GetEnv(),"GeneralIK");
     _pIkSolver->Init(_pRobot->GetActiveManipulator());
 
@@ -252,6 +255,7 @@ bool SoCBirrtPlanner::InitPlan(RobotBasePtr  pbase, PlannerParametersConstPtr pp
 
     bInit = true;
     RAVELOG_DEBUG("RrtPlanner::InitPlan - RRT Planner Initialized\n");
+    printf("[socbirrt.cpp-InitPlan-258] RRT Planner Initialized\n");
     return true;
 }
 

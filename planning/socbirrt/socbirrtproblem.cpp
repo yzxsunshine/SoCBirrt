@@ -665,7 +665,6 @@ int SoCBirrtProblem::StopPlanner(ostream& sout, istream& sinput)
 int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 {
     //lock mutex
-    EnvironmentMutex::scoped_lock envlock(GetEnv()->GetMutex());
 
     boost::shared_ptr<SoCBirrtParameters> params;
     params.reset(new SoCBirrtParameters());
@@ -865,8 +864,6 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     PlannerBasePtr _pTCplanner;
     //boost::shared_ptr<SoCBirrtPlanner> _pTCplanner;
 
-    TrajectoryBasePtr ptraj = RaveCreateTrajectory(GetEnv(),"");
-    ptraj->Init(robot->GetActiveConfigurationSpecification());
 
 
     _pTCplanner = RaveCreatePlanner(GetEnv(),"SoCBirrt");
@@ -951,6 +948,8 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     RaveVector<dReal> goal;
     goal.Set3(0, 0, 0);
     sc.SetInitGoal(goal);
+    std::vector<dReal> dofVals;
+    robot->GetDOFValues(dofVals);
     while (endTime - startTime < params->timelimit) {
     	// Generate new goal
     	/*TaskSpaceRegion tsr;
@@ -968,47 +967,63 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 */
     	//robot->GetActiveDOFValues(curConfig);
     	// move robot to original place for testing
-    	robot->GetController()->SetDesired(curConfig);
+    	{
+    		EnvironmentMutex::scoped_lock envlock(GetEnv()->GetMutex());
+    		robot->GetController()->Reset();
+    		//robot->SetActiveDOFValues(curConfig);
+    		robot->GetController()->SetDesired(dofVals);
+    	}
     	while(!robot->GetController()->IsDone()) {
 			 boost::this_thread::sleep(boost::posix_time::milliseconds(1));
 		}
-    	// Estimate planning & execution time
-    	double estimated_time = 0.0;
-    	// Calculate sigma
-    	// first get transform of end effector
- /*   	Transform T0_s = robot->GetActiveManipulator()->GetEndEffectorTransform();
-    	std::vector<dReal> dx;
-    	dReal distMag = tsr.DistanceToTSR(T0_s, dx);
-    	dReal transDist = sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
-    	dReal planningTime = EstimatePlanningTime(transDist, curConfig);
-    	dReal sigma = planningTime * sc.GetVelocityMagitude();
 
-    	// Set Bound, may change ball to a surface
-    	tsr.Bw[0][0] = -sigma;
-		tsr.Bw[0][1] = sigma;
-		tsr.Bw[1][0] = -sigma;
-		tsr.Bw[1][1] = sigma;
-		tsr.Bw[2][0] = -sigma;
-		tsr.Bw[2][1] = sigma;
+    	{
+    	    EnvironmentMutex::scoped_lock envlock(GetEnv()->GetMutex());
+			// Estimate planning & execution time
+			double estimated_time = 0.0;
+			// Calculate sigma
+			// first get transform of end effector
+	 /*   	Transform T0_s = robot->GetActiveManipulator()->GetEndEffectorTransform();
+			std::vector<dReal> dx;
+			dReal distMag = tsr.DistanceToTSR(T0_s, dx);
+			dReal transDist = sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
+			dReal planningTime = EstimatePlanningTime(transDist, curConfig);
+			dReal sigma = planningTime * sc.GetVelocityMagitude();
 
-		TaskSpaceRegionChain tsrc;
-		tsrc.AddTSR(tsr);
-		tsrc.SetParameters(false, true, false);
-		tsrc.Initialize(GetEnv());
+			// Set Bound, may change ball to a surface
+			tsr.Bw[0][0] = -sigma;
+			tsr.Bw[0][1] = sigma;
+			tsr.Bw[1][0] = -sigma;
+			tsr.Bw[1][1] = sigma;
+			tsr.Bw[2][0] = -sigma;
+			tsr.Bw[2][1] = sigma;
 
-		std::vector<TaskSpaceRegionChain> tsrChains;
-		tsrChains.push_back(tsrc);
-*/
-		bool doSampling = false;
-		//_pTCplanner->SetTSR(params->vTSRChains, curConfig, goalConfig, doSampling);
-		params->breinitplan = true;
-		//params->vTSRChains = tsrChains;
-		params->vinitialconfig = curConfig;
-		params->vgoalconfig = goalConfig;
-		_pTCplanner->InitPlan(robot, params);
-    	bSuccess = _pTCplanner->PlanPath(ptraj);
-    	// Merge Tree
-    	robot->GetController()->SetPath(ptraj);
+			TaskSpaceRegionChain tsrc;
+			tsrc.AddTSR(tsr);
+			tsrc.SetParameters(false, true, false);
+			tsrc.Initialize(GetEnv());
+
+			std::vector<TaskSpaceRegionChain> tsrChains;
+			tsrChains.push_back(tsrc);
+	*/
+			bool doSampling = false;
+			//_pTCplanner->SetTSR(params->vTSRChains, curConfig, goalConfig, doSampling);
+			params->breinitplan = true;
+			//params->vTSRChains = tsrChains;
+			params->vinitialconfig = curConfig;
+			params->vgoalconfig = goalConfig;
+			printf("[socbirrtproblem.cpp-RunSoCBiRRT-1018] Planning Started\n");
+			_pTCplanner->InitPlan(robot, params);
+
+			TrajectoryBasePtr ptraj = RaveCreateTrajectory(GetEnv(),"");
+			ptraj->Init(robot->GetActiveConfigurationSpecification());
+
+			bSuccess = _pTCplanner->PlanPath(ptraj);
+			printf("[socbirrtproblem.cpp-RunSoCBiRRT-1011] Planning Finished\n");
+			// Merge Tree
+			robot->GetController()->Reset();
+			robot->GetController()->SetPath(ptraj);
+    	}
     	while(!robot->GetController()->IsDone()) {
     		 boost::this_thread::sleep(boost::posix_time::milliseconds(1));
     	}
@@ -1040,9 +1055,9 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
         return -1;
     }
 
-    WriteTraj(ptraj, filename);
-    _pTCplanner->SendCommand(outputstream,command);
-    sout << 1 << " " << outputstream.str();
+    //WriteTraj(ptraj, filename);
+    //_pTCplanner->SendCommand(outputstream,command);
+    //sout << 1 << " " << outputstream.str();
     return 1;
 }
 
