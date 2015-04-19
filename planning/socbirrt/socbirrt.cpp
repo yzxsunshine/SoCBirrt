@@ -105,7 +105,6 @@ OpenRAVE::PlannerStatus SoCBirrtPlanner::CleanUpReturn(bool retval)
 
 bool SoCBirrtPlanner::InitPlan(RobotBasePtr  pbase, PlannerParametersConstPtr pparams)
 {
-    
 #ifdef TRACK_COLLISIONS
         colfile.open("cols.txt",ios::app);
 #endif
@@ -120,26 +119,20 @@ bool SoCBirrtPlanner::InitPlan(RobotBasePtr  pbase, PlannerParametersConstPtr pp
     }
     else
     {
-        RAVELOG_DEBUG("SoCBirrt::InitPlan - Error: No parameters passed in to initialization");
+        RAVELOG_DEBUG("CBirrt::InitPlan - Error: No parameters passed in to initialization");
         _outputstream << "Error: No parameters passed in to initialization\n";
         return false;
     }
     
     _pRobot = pbase;
-    
-    if (_parameters->breinitplan) {
-    	bool dosampling;
-    	printf("[socbirrt.cpp-InitPlan-132] Replan\n");
-    	SetTSR(_parameters->vTSRChains, _parameters->vinitialconfig, _parameters->vgoalconfig, dosampling);
-    	printf("[socbirrt.cpp-InitPlan-134] Replan Finished\n");
-    	return true;
-    }
+    for(int i = 0; i < _parameters->vTSRChains.size(); i++)
+        _parameters->vTSRChains[i].Initialize(GetEnv());
 
     RAVELOG_DEBUG("RrtPlanner: Using Default Distance Function\n");
     bdelete_distmetric = true;
     pdistmetric = new SoCBirrtDistanceMetric(this);
     
-    printf("[socbirrt.cpp-InitPlan-142] Default Plan\n");
+
     if( _pRobot.get() == NULL || pdistmetric == NULL ) {
         _pRobot.reset();
         return false;
@@ -178,8 +171,94 @@ bool SoCBirrtPlanner::InitPlan(RobotBasePtr  pbase, PlannerParametersConstPtr pp
             vJointIndToActiveInd[_pRobot->GetActiveDOFIndices()[i]] = i;
     }
 
+    int numTSRMimicDOF = 0;
+    int old_numTSRMimicDOF = 0;
+    int numTSRTotalDOF = 0;
+    int old_numTSRTotalDOF = 0;
+
+    vTSRChainIndexToConfigurationOffset.resize(_parameters->vTSRChains.size(),0);
+    vTSRChainIndexToGuessOffset.resize(_parameters->vTSRChains.size(),0);
+
+    vvManipToConstraintTSRChainind.resize(_pRobot->GetManipulators().size());
+    vvManipToGoalSamplingTSRChainind.resize(_pRobot->GetManipulators().size());
+    vvManipToStartSamplingTSRChainind.resize(_pRobot->GetManipulators().size());
+
+    vMimicBodies.clear();
+
+    bool bDoingConstraint = false;
+    bool bDoingSampling = false;
+    RobotBasePtr probottemp;
+
+    for(int i = 0; i < _parameters->vTSRChains.size();i++)
+    {
+        if(!_parameters->vTSRChains[i].RobotizeTSRChain(GetEnv(),probottemp))
+        {
+            RAVELOG_FATAL("Unable to robotize TSR for TSR Chain %d, cannot initialize planner.\n",i);
+            _outputstream << "Unable to robotize TSR for TSR Chain " << i << ", cannot initialize planner\n";
+            return false;
+        }
+
+        if(probottemp.get() != NULL)
+            sIgnoredBodies.push_back(probottemp);//ignore TSR robot for collision checks
+
+        if(_parameters->vTSRChains[i].IsForConstraint())
+        {
+            if(_parameters->vTSRChains[i].GetMimicBody() != NULL)
+                vMimicBodies.push_back(_parameters->vTSRChains[i].GetMimicBody());
+
+            vvManipToConstraintTSRChainind[_parameters->vTSRChains[i].GetManipInd()].push_back(i);
+            old_numTSRMimicDOF = numTSRMimicDOF;
+            numTSRMimicDOF += _parameters->vTSRChains[i].GetNumMimicDOF();
+
+            if(numTSRMimicDOF > old_numTSRMimicDOF)
+            {
+                _numdofs = _pRobot->GetActiveDOF()+numTSRMimicDOF;
+                _lowerLimit.resize(GetNumDOF(),0);
+                _upperLimit.resize(GetNumDOF(),0);
+
+                vTSRChainIndexToConfigurationOffset[i] =_pRobot->GetActiveDOF()+old_numTSRMimicDOF;
+
+                _parameters->vTSRChains[i].GetChainJointLimits(&_lowerLimit[_pRobot->GetActiveDOF()+old_numTSRMimicDOF],&_upperLimit[_pRobot->GetActiveDOF()+old_numTSRMimicDOF]);
+            }
+            else
+            {
+                //this is a TSR chain with 0 dofs, i.e. a point tsr, so set this to point to nowhere
+                vTSRChainIndexToConfigurationOffset[i] = 0;
+            }
+
+
+            old_numTSRTotalDOF = numTSRTotalDOF;
+            numTSRTotalDOF += _parameters->vTSRChains[i].GetNumDOF();
     
+            if(numTSRTotalDOF > old_numTSRTotalDOF)
+            {
+                vTSRChainIndexToGuessOffset[i] = old_numTSRTotalDOF;
+            }
+            else
+            {
+                //this is a TSR chain with 0 dofs, i.e. a point tsr, so set this to point to nowhere
+                vTSRChainIndexToGuessOffset[i] = 0;
+            }
+            bDoingConstraint = true;
+        }
+
+        if(_parameters->vTSRChains[i].IsForGoalSampling())
+        {
+            vvManipToGoalSamplingTSRChainind[_parameters->vTSRChains[i].GetManipInd()].push_back(i);
+            bDoingSampling = true;
+        }
+
+        if(_parameters->vTSRChains[i].IsForStartSampling())
+        {
+            vvManipToStartSamplingTSRChainind[_parameters->vTSRChains[i].GetManipInd()].push_back(i);
+            bDoingSampling = true;
+        }
+
+
+    }
     _jointResolution.resize(GetNumDOF(),1);
+    vTSRChainValues_temp.resize(numTSRTotalDOF);
+
     RAVELOG_INFO("numdofs: %d\n",_numdofs);
 
     // invert for speed
@@ -190,7 +269,18 @@ bool SoCBirrtPlanner::InitPlan(RobotBasePtr  pbase, PlannerParametersConstPtr pp
     }
 
     P_SAMPLE_IK = _parameters->Psample;
-
+    if(P_SAMPLE_IK == 0 && bDoingSampling)
+    {
+        RAVELOG_INFO("ERROR: there are chains defined for sampling but psample is 0.\n");
+        _outputstream << "ERROR: there are chains defined for sampling but psample is 0\n";
+        return false;
+    }
+    else if(P_SAMPLE_IK > 0 && !bDoingSampling)
+    {
+        RAVELOG_INFO("ERROR: psample is set to >0 but there are no chains defined for sampling.\n");
+        _outputstream << "ERROR: psample is set to >0 but there are no chains defined for sampling\n";
+        return false;
+    }
 
     if(_parameters->bgrabbed)
     {
@@ -210,38 +300,226 @@ bool SoCBirrtPlanner::InitPlan(RobotBasePtr  pbase, PlannerParametersConstPtr pp
         _validRange[i] = _upperLimit[i] - _lowerLimit[i];
         assert(_validRange[i] > 0);
     }
-    printf("[socbirrt.cpp-InitPlan-213] Init Trees\n");
+
     _pForwardTree->_pMakeNext = new MakeNext(_pForwardTree->GetFromGoal(),GetNumDOF(),_pRobot,this);
     _pBackwardTree->_pMakeNext = new MakeNext(_pBackwardTree->GetFromGoal(),GetNumDOF(),_pRobot,this);
 
     RAVELOG_INFO("grabbed: %d\n",_parameters->bgrabbed);
-    bool bDoingSampling;
-    printf("[socbirrt.cpp-InitPlan-219] Set Chain\n");
-	if (!SetTSR(_parameters->vTSRChains, _parameters->vinitialconfig, _parameters->vgoalconfig, bDoingSampling)) {
-		return false;
-	}
-	if(P_SAMPLE_IK == 0 && bDoingSampling)
-	{
-		RAVELOG_INFO("ERROR: there are chains defined for sampling but psample is 0.\n");
-		_outputstream << "ERROR: there are chains defined for sampling but psample is 0\n";
-		return false;
-	}
-	else if(P_SAMPLE_IK > 0 && !bDoingSampling)
-	{
-		RAVELOG_INFO("ERROR: psample is set to >0 but there are no chains defined for sampling.\n");
-		_outputstream << "ERROR: psample is set to >0 but there are no chains defined for sampling\n";
-		return false;
-	}
+
 
     bSmoothPath = _parameters->bsmoothpath;
 
-    printf("[socbirrt.cpp-InitPlan-238] Create IK\n");
+
     _pIkSolver = RaveCreateIkSolver(GetEnv(),"GeneralIK");
     _pIkSolver->Init(_pRobot->GetActiveManipulator());
 
     RAVELOG_INFO("Psample: %f\n",_parameters->Psample);
 
-    
+
+    _pInitConfig.resize(GetNumDOF());
+    std::vector<dReal> tempjointvals;
+    std::vector<dReal> tempconfig;
+    bool bProjected;
+    int start_index = 0;
+    int num_starts = 0;
+    int projectednode_id =0;
+    if(_parameters->vinitialconfig.size() != 0)
+    {
+        while(1)
+        {
+            for(int i = 0 ; i < GetNumDOF()- numTSRMimicDOF; i++)
+            {
+                if(start_index < (int)_parameters->vinitialconfig.size())
+                {
+                  _pInitConfig[i] = _parameters->vinitialconfig[start_index];
+                }
+                else
+                {
+                    RAVELOG_INFO("CBirrtPlanner::InitPlan - Error: Starts are improperly specified.\n");
+                    _outputstream << "Error: Starts are improperly specified\n";
+                    return false;
+                }
+
+                start_index++;
+            }
+
+
+
+            stringstream s;
+            tempjointvals = _pInitConfig;
+            ClearTSRChainValues();
+            tempconfig = _pInitConfig;
+            bool bProjected = false;
+            //WARNING: DISTANCE CHECKING FOR STARTCONFIG PROJECTION IS CURRENTLY DISABLED
+            //This is because there is always some numerical error so can't meet lower-dimensional constraints exactly
+            if(!_pForwardTree->_pMakeNext->ConstrainedNewConfig(_pInitConfig,tempjointvals,vTSRChainValues_temp,false))
+            {
+                s << "Start " << num_starts << ": ";
+                RAVELOG_INFO("CBirrtPlanner::InitPlan - Error: Start configuration %d does not meet constraints:\n",num_starts);
+                for(int j = 0 ; j < GetNumDOF(); j++)
+                    s<< _pInitConfig[j] << " ";
+                s << endl;
+                RAVELOG_INFO(s.str().c_str());
+                _outputstream << "Error: Start configuration "<< num_starts << " does not meet constraints\n";
+
+                SetDOF(_pInitConfig);
+                if(!_pForwardTree->_pMakeNext->CheckSupport())
+                {
+                    RAVELOG_INFO("CBirrtPlanner::InitPlan - Error: Start configuration %d is not in balance.\n",num_starts);
+                    _outputstream << "Error: Start configuration "<< num_starts << " is not in balance\n";
+                }
+
+                return false;
+            }
+
+            if(_CheckCollision(_pInitConfig))
+            {
+                s << "Start " << num_starts << ": ";
+                RAVELOG_INFO("CBirrtPlanner::InitPlan - Error: Start configuration in collision:\n");
+                for(int j = 0 ; j < GetNumDOF(); j++)
+                    s<< _pInitConfig[j] << " ";
+                s << endl;
+                RAVELOG_INFO(s.str().c_str());
+                _outputstream << "Error: Start configuration in collision\n";
+                return false;
+            }
+
+
+            // set up the start states
+            _pActiveNode = new RrtNode(GetNumDOF(),false,num_starts+projectednode_id);
+            _pActiveNode->SetConfig(&tempconfig[0]);
+            _pActiveNode->SetTSRChainValues(vTSRChainValues_temp);
+            _pForwardTree->AddNode(*_pActiveNode);
+	    delete _pActiveNode;
+	    RAVELOG_INFO("Checking for start projection...\n");
+		for(int i = 0; i < GetNumDOF() - numTSRMimicDOF; i++)
+		{
+		   if(_pInitConfig[i] != tempconfig[i])
+		   {
+                RAVELOG_INFO("CBirrtPlanner::InitPlan - WARNING: Start configuration %d was projected to meet constraint:\n",num_starts);
+                        for(int j = 0 ; j < GetNumDOF(); j++)
+                            s<< _pInitConfig[j] << " ";
+                        s << endl;
+                        RAVELOG_INFO(s.str().c_str());
+                        _outputstream << "WARNING: Start configuration "<< num_starts << " was projected to meet constraint:\n"<< s.str();
+                bProjected = true;
+                projectednode_id++;
+			    _pActiveNode = new RrtNode(GetNumDOF(),false,num_starts+projectednode_id);
+			    _pActiveNode->SetConfig(&_pInitConfig[0]);
+			    _pActiveNode->SetTSRChainValues(vTSRChainValues_temp);
+			    _pActiveNode->SetParent(num_starts+projectednode_id-1);
+			    _pForwardTree->AddNode(*_pActiveNode);
+			    delete _pActiveNode;
+
+			break;
+		   }
+		}
+
+
+
+	    num_starts++;
+
+
+            if(start_index == (int)_parameters->vinitialconfig.size())
+                break;
+
+        }
+    }
+
+    RAVELOG_INFO("Start Node(s) Created\n");
+
+    // reset all RRT parameters
+    _pConnectNode = NULL;
+
+    if(_parameters->vgoalconfig.size() != 0)
+    {
+        _pGoalConfig.resize(GetNumDOF());
+        RAVELOG_DEBUG("Num Active DOFs: %d\n",GetNumDOF());
+        //read in all goals
+        int goal_index = 0;
+        int num_goals = 0;
+        while(1)
+        {
+            for(int i = 0 ; i < GetNumDOF(); i++)
+            {
+                if(goal_index < (int)_parameters->vgoalconfig.size())
+                    _pGoalConfig[i] = _parameters->vgoalconfig[goal_index];
+                else
+                {
+                    RAVELOG_INFO("CBirrtPlanner::InitPlan - Error: goals are improperly specified.\n");
+                    _outputstream << "Error: goals are improperly specified\n";
+                    return false;
+                }
+                goal_index++;
+            }
+
+
+            stringstream s;
+
+
+            tempjointvals = _pGoalConfig;
+            ClearTSRChainValues();
+            //don't care about distance check for goal config
+            if(!_pBackwardTree->_pMakeNext->ConstrainedNewConfig(_pGoalConfig,tempjointvals,vTSRChainValues_temp,false))
+            {
+                s << "Goal " << num_goals << ": ";
+                RAVELOG_INFO("CBirrtPlanner::InitPlan - Error: Goal configuration does not meet constraints:\n");
+                for(int j = 0 ; j < GetNumDOF(); j++)
+                    s<< _pGoalConfig[j] << " ";
+                s << endl;
+                RAVELOG_INFO(s.str().c_str());
+                _outputstream << "Error: Goal configuration does not meet constraints:\n" << s.str();
+
+                SetDOF(_pGoalConfig);
+                if(!_pForwardTree->_pMakeNext->CheckSupport())
+                {
+                    RAVELOG_INFO("CBirrtPlanner::InitPlan - Error: Goal configuration %d is not in balance.\n",num_goals);
+                    _outputstream << "Error: Goal configuration "<< num_goals << " is not in balance\n";
+                }
+
+                return false;
+            }
+
+            if(_CheckCollision(_pGoalConfig))
+            {
+                s << "Skipping Goal " << num_goals << ": ";
+                for(int j = 0 ; j < GetNumDOF(); j++)
+                    s<< _pGoalConfig[j] << " ";
+                s << endl;
+                RAVELOG_INFO(s.str().c_str());
+                RAVELOG_INFO(" because it is in collision:\n");
+                _outputstream << s.str() << " because it is in collision:\n";
+                if(goal_index == (int)_parameters->vgoalconfig.size())
+                  break;
+                else
+                  continue;
+                //return false;
+            }
+
+            // set up the goal states
+            _pActiveNode = new RrtNode(GetNumDOF(),true,num_goals);
+            _pActiveNode->SetConfig(&_pGoalConfig[0]);
+            _pActiveNode->SetTSRChainValues(vTSRChainValues_temp);
+            num_goals++;
+
+            _pBackwardTree->AddNode(*_pActiveNode);
+
+            delete _pActiveNode;
+
+            if(goal_index == (int)_parameters->vgoalconfig.size())
+                break;
+
+        }
+
+        if (num_goals !=0)
+          RAVELOG_DEBUG("Goal State Node(s) Created\n");
+        else
+        {
+          RAVELOG_DEBUG("Could not initialize Goal Configuration\n");
+          _outputstream << "Could not initialize Goal Configuration\n";
+          return false;
+        }
+    }
 
     RAVELOG_DEBUG("Initializaing Start State\n");
 
@@ -255,7 +533,6 @@ bool SoCBirrtPlanner::InitPlan(RobotBasePtr  pbase, PlannerParametersConstPtr pp
 
     bInit = true;
     RAVELOG_DEBUG("RrtPlanner::InitPlan - RRT Planner Initialized\n");
-    printf("[socbirrt.cpp-InitPlan-258] RRT Planner Initialized\n");
     return true;
 }
 
@@ -288,7 +565,7 @@ OpenRAVE::PlannerStatus SoCBirrtPlanner::PlanPath(TrajectoryBasePtr ptraj)
     nncalls = 0;
     collisioncheckcalls = 0;
     projectioncalls = 0;
-
+    printf("[socbirrt.cpp-PlanPath-276] Start Path Planning\n");
     double starttime = timeGetThreadTime();
     int numitr = 0;
 
@@ -306,18 +583,28 @@ OpenRAVE::PlannerStatus SoCBirrtPlanner::PlanPath(TrajectoryBasePtr ptraj)
         if(_pForwardTree->GetSize() == 0)
         {
             RAVELOG_DEBUG("Forward Tree is empty\n");
-
+            printf("[socbirrt.cpp-PlanPath-294] Forward Tree is empty\n");
             while(1)
             {
                 if(_parameters->vikguess.size() == 0)
                 {
                     _PickRandomConfig();
+                    printf("[socbirrt.cpp-PlanPath-300] _randomConfig\n");
+					for (int v=0; v<_randomConfig.size(); v++) {
+						printf(" %f", _randomConfig[v]);
+					}
+					printf("\n");
                     if(_pForwardTree->_pMakeNext->AddRootConfiguration(_pForwardTree,_randomConfig) )
                         break;
                 }
                 else
                 {
-                    if(_pForwardTree->_pMakeNext->AddRootConfiguration(_pForwardTree,_parameters->vikguess) )
+                	printf("[socbirrt.cpp-PlanPath-305 vikguess\n");
+                	for (int v=0; v<_parameters->vikguess.size(); v++) {
+                		printf(" %f", _parameters->vikguess[v]);
+                	}
+                	printf("\n");
+                	if(_pForwardTree->_pMakeNext->AddRootConfiguration(_pForwardTree,_parameters->vikguess) )
                         break;
                 }
                 if(timeGetThreadTime() - starttime > max_firstik_time)
@@ -328,12 +615,14 @@ OpenRAVE::PlannerStatus SoCBirrtPlanner::PlanPath(TrajectoryBasePtr ptraj)
                 }
             }
             RAVELOG_INFO("Got first start ik solution!\n");
+            printf("[socbirrt.cpp-PlanPath-276] Got first start ik sollution\n");
         }
 
 
         if(_pBackwardTree->GetSize() == 0)
         {
             RAVELOG_DEBUG("Backward Tree is empty\n");
+            printf("[socbirrt.cpp-PlanPath-333] Backward Tree is empty\n");
             while(1)
             {
                 if(_pBackwardTree->_pMakeNext->AddRootConfiguration(_pBackwardTree,_parameters->vikguess) )
@@ -346,6 +635,7 @@ OpenRAVE::PlannerStatus SoCBirrtPlanner::PlanPath(TrajectoryBasePtr ptraj)
                 }
             }
             RAVELOG_INFO("Got first goal ik solution!\n");
+            printf("[socbirrt.cpp-PlanPath-346] Got first goal ik solution\n");
         }
 
         if(RANDOM_FLOAT() < P_SAMPLE_IK)
@@ -363,7 +653,11 @@ OpenRAVE::PlannerStatus SoCBirrtPlanner::PlanPath(TrajectoryBasePtr ptraj)
 
         RAVELOG_DEBUG("Sampling Random Config\n");
         _PickRandomConfig();
-
+        printf("[socbirrt.cpp-PlanPath-364] _randomConfig\n");
+		for (int v=0; v<_randomConfig.size(); v++) {
+			printf(" %f", _randomConfig[v]);
+		}
+		printf("\n");
         //Tree A
         iclosest = _FindClosest(TreeA);
         RAVELOG_DEBUG("Extending TreeA toward random config\n");
@@ -1623,296 +1917,3 @@ bool SoCBirrtPlanner::MakeNext::CheckSupport(bool bDraw)
     }
 }
 
-bool SoCBirrtPlanner::SetTSR(std::vector<TaskSpaceRegionChain>& tsrChains, std::vector<dReal>& initConfig, std::vector<dReal>& goalConfig, bool& bDoingSampling) {
-	int numTSRMimicDOF = 0;
-	int old_numTSRMimicDOF = 0;
-	int numTSRTotalDOF = 0;
-	int old_numTSRTotalDOF = 0;
-
-	_parameters->vTSRChains = tsrChains;
-	_parameters->vinitialconfig = initConfig;
-	_parameters->vgoalconfig = goalConfig;
-
-	for(int i = 0; i < _parameters->vTSRChains.size(); i++)
-		_parameters->vTSRChains[i].Initialize(GetEnv());
-
-	vTSRChainIndexToConfigurationOffset.resize(_parameters->vTSRChains.size(),0);
-	vTSRChainIndexToGuessOffset.resize(_parameters->vTSRChains.size(),0);
-
-	vvManipToConstraintTSRChainind.resize(_pRobot->GetManipulators().size());
-	vvManipToGoalSamplingTSRChainind.resize(_pRobot->GetManipulators().size());
-	vvManipToStartSamplingTSRChainind.resize(_pRobot->GetManipulators().size());
-
-	vMimicBodies.clear();
-
-	bool bDoingConstraint = false;
-	bDoingSampling = false;
-	RobotBasePtr probottemp;
-
-	for(int i = 0; i < _parameters->vTSRChains.size();i++)
-	{
-		if(!_parameters->vTSRChains[i].RobotizeTSRChain(GetEnv(),probottemp))
-		{
-			RAVELOG_FATAL("Unable to robotize TSR for TSR Chain %d, cannot initialize planner.\n",i);
-			_outputstream << "Unable to robotize TSR for TSR Chain " << i << ", cannot initialize planner\n";
-			return false;
-		}
-
-		if(probottemp.get() != NULL)
-			sIgnoredBodies.push_back(probottemp);//ignore TSR robot for collision checks
-
-		if(_parameters->vTSRChains[i].IsForConstraint())
-		{
-			if(_parameters->vTSRChains[i].GetMimicBody() != NULL)
-				vMimicBodies.push_back(_parameters->vTSRChains[i].GetMimicBody());
-
-			vvManipToConstraintTSRChainind[_parameters->vTSRChains[i].GetManipInd()].push_back(i);
-			old_numTSRMimicDOF = numTSRMimicDOF;
-			numTSRMimicDOF += _parameters->vTSRChains[i].GetNumMimicDOF();
-
-			if(numTSRMimicDOF > old_numTSRMimicDOF)
-			{
-				_numdofs = _pRobot->GetActiveDOF()+numTSRMimicDOF;
-				_lowerLimit.resize(GetNumDOF(),0);
-				_upperLimit.resize(GetNumDOF(),0);
-
-				vTSRChainIndexToConfigurationOffset[i] =_pRobot->GetActiveDOF()+old_numTSRMimicDOF;
-
-				_parameters->vTSRChains[i].GetChainJointLimits(&_lowerLimit[_pRobot->GetActiveDOF()+old_numTSRMimicDOF],&_upperLimit[_pRobot->GetActiveDOF()+old_numTSRMimicDOF]);
-			}
-			else
-			{
-				//this is a TSR chain with 0 dofs, i.e. a point tsr, so set this to point to nowhere
-				vTSRChainIndexToConfigurationOffset[i] = 0;
-			}
-
-
-			old_numTSRTotalDOF = numTSRTotalDOF;
-			numTSRTotalDOF += _parameters->vTSRChains[i].GetNumDOF();
-
-			if(numTSRTotalDOF > old_numTSRTotalDOF)
-			{
-				vTSRChainIndexToGuessOffset[i] = old_numTSRTotalDOF;
-			}
-			else
-			{
-				//this is a TSR chain with 0 dofs, i.e. a point tsr, so set this to point to nowhere
-				vTSRChainIndexToGuessOffset[i] = 0;
-			}
-			bDoingConstraint = true;
-		}
-
-		if(_parameters->vTSRChains[i].IsForGoalSampling())
-		{
-			vvManipToGoalSamplingTSRChainind[_parameters->vTSRChains[i].GetManipInd()].push_back(i);
-			bDoingSampling = true;
-		}
-
-		if(_parameters->vTSRChains[i].IsForStartSampling())
-		{
-			vvManipToStartSamplingTSRChainind[_parameters->vTSRChains[i].GetManipInd()].push_back(i);
-			bDoingSampling = true;
-		}
-	}
-
-	vTSRChainValues_temp.resize(numTSRTotalDOF);
-	_pInitConfig.resize(GetNumDOF());
-	std::vector<dReal> tempjointvals;
-	std::vector<dReal> tempconfig;
-	bool bProjected;
-	int start_index = 0;
-	int num_starts = 0;
-	int projectednode_id =0;
-	if(_parameters->vinitialconfig.size() != 0)
-	{
-		while(1)
-		{
-			for(int i = 0 ; i < GetNumDOF()- numTSRMimicDOF; i++)
-			{
-				if(start_index < (int)_parameters->vinitialconfig.size())
-				{
-				  _pInitConfig[i] = _parameters->vinitialconfig[start_index];
-				}
-				else
-				{
-					RAVELOG_INFO("SoCBirrtPlanner::InitPlan - Error: Starts are improperly specified.\n");
-					_outputstream << "Error: Starts are improperly specified\n";
-					return false;
-				}
-
-				start_index++;
-			}
-			stringstream s;
-			tempjointvals = _pInitConfig;
-			ClearTSRChainValues();
-			tempconfig = _pInitConfig;
-			bool bProjected = false;
-			//WARNING: DISTANCE CHECKING FOR STARTCONFIG PROJECTION IS CURRENTLY DISABLED
-			//This is because there is always some numerical error so can't meet lower-dimensional constraints exactly
-			if(!_pForwardTree->_pMakeNext->ConstrainedNewConfig(_pInitConfig,tempjointvals,vTSRChainValues_temp,false))
-			{
-				s << "Start " << num_starts << ": ";
-				RAVELOG_INFO("SoCBirrtPlanner::InitPlan - Error: Start configuration %d does not meet constraints:\n",num_starts);
-				for(int j = 0 ; j < GetNumDOF(); j++)
-					s<< _pInitConfig[j] << " ";
-				s << endl;
-				RAVELOG_INFO(s.str().c_str());
-				_outputstream << "Error: Start configuration "<< num_starts << " does not meet constraints\n";
-
-				SetDOF(_pInitConfig);
-				if(!_pForwardTree->_pMakeNext->CheckSupport())
-				{
-					RAVELOG_INFO("SoCBirrtPlanner::InitPlan - Error: Start configuration %d is not in balance.\n",num_starts);
-					_outputstream << "Error: Start configuration "<< num_starts << " is not in balance\n";
-				}
-
-				return false;
-			}
-
-			if(_CheckCollision(_pInitConfig))
-			{
-				s << "Start " << num_starts << ": ";
-				RAVELOG_INFO("SoCBirrtPlanner::InitPlan - Error: Start configuration in collision:\n");
-				for(int j = 0 ; j < GetNumDOF(); j++)
-					s<< _pInitConfig[j] << " ";
-				s << endl;
-				RAVELOG_INFO(s.str().c_str());
-				_outputstream << "Error: Start configuration in collision\n";
-				return false;
-			}
-
-			// set up the start states
-			_pActiveNode = new RrtNode(GetNumDOF(),false,num_starts+projectednode_id);
-			_pActiveNode->SetConfig(&tempconfig[0]);
-			_pActiveNode->SetTSRChainValues(vTSRChainValues_temp);
-			_pForwardTree->AddNode(*_pActiveNode);
-			delete _pActiveNode;
-			RAVELOG_INFO("Checking for start projection...\n");
-
-			for(int i = 0; i < GetNumDOF() - numTSRMimicDOF; i++)
-			{
-			   if(_pInitConfig[i] != tempconfig[i])
-			   {
-					RAVELOG_INFO("SoCBirrtPlanner::InitPlan - WARNING: Start configuration %d was projected to meet constraint:\n",num_starts);
-							for(int j = 0 ; j < GetNumDOF(); j++)
-								s<< _pInitConfig[j] << " ";
-							s << endl;
-							RAVELOG_INFO(s.str().c_str());
-							_outputstream << "WARNING: Start configuration "<< num_starts << " was projected to meet constraint:\n"<< s.str();
-					bProjected = true;
-					projectednode_id++;
-					_pActiveNode = new RrtNode(GetNumDOF(),false,num_starts+projectednode_id);
-					_pActiveNode->SetConfig(&_pInitConfig[0]);
-					_pActiveNode->SetTSRChainValues(vTSRChainValues_temp);
-					_pActiveNode->SetParent(num_starts+projectednode_id-1);
-					_pForwardTree->AddNode(*_pActiveNode);
-					delete _pActiveNode;
-
-				break;
-			   }
-			}
-
-			num_starts++;
-			if(start_index == (int)_parameters->vinitialconfig.size())
-				break;
-
-		}
-	}
-
-	RAVELOG_INFO("Start Node(s) Created\n");
-	printf ("Start Node(s) Created\n");
-
-	// reset all RRT parameters
-	_pConnectNode = NULL;
-
-	if(_parameters->vgoalconfig.size() != 0)
-	{
-		_pGoalConfig.resize(GetNumDOF());
-		RAVELOG_DEBUG("Num Active DOFs: %d\n",GetNumDOF());
-		//read in all goals
-		int goal_index = 0;
-		int num_goals = 0;
-		while(1)
-		{
-			for(int i = 0 ; i < GetNumDOF(); i++)
-			{
-				if(goal_index < (int)_parameters->vgoalconfig.size())
-					_pGoalConfig[i] = _parameters->vgoalconfig[goal_index];
-				else
-				{
-					RAVELOG_INFO("SoCBirrtPlanner::InitPlan - Error: goals are improperly specified.\n");
-					_outputstream << "Error: goals are improperly specified\n";
-					return false;
-				}
-				goal_index++;
-			}
-
-
-			stringstream s;
-
-
-			tempjointvals = _pGoalConfig;
-			ClearTSRChainValues();
-			//don't care about distance check for goal config
-			if(!_pBackwardTree->_pMakeNext->ConstrainedNewConfig(_pGoalConfig,tempjointvals,vTSRChainValues_temp,false))
-			{
-				s << "Goal " << num_goals << ": ";
-				RAVELOG_INFO("SoCBirrtPlanner::InitPlan - Error: Goal configuration does not meet constraints:\n");
-				for(int j = 0 ; j < GetNumDOF(); j++)
-					s<< _pGoalConfig[j] << " ";
-				s << endl;
-				RAVELOG_INFO(s.str().c_str());
-				_outputstream << "Error: Goal configuration does not meet constraints:\n" << s.str();
-
-				SetDOF(_pGoalConfig);
-				if(!_pForwardTree->_pMakeNext->CheckSupport())
-				{
-					RAVELOG_INFO("SoCBirrtPlanner::InitPlan - Error: Goal configuration %d is not in balance.\n",num_goals);
-					_outputstream << "Error: Goal configuration "<< num_goals << " is not in balance\n";
-				}
-
-				return false;
-			}
-
-			if(_CheckCollision(_pGoalConfig))
-			{
-				s << "Skipping Goal " << num_goals << ": ";
-				for(int j = 0 ; j < GetNumDOF(); j++)
-					s<< _pGoalConfig[j] << " ";
-				s << endl;
-				RAVELOG_INFO(s.str().c_str());
-				RAVELOG_INFO(" because it is in collision:\n");
-				_outputstream << s.str() << " because it is in collision:\n";
-				if(goal_index == (int)_parameters->vgoalconfig.size())
-				  break;
-				else
-				  continue;
-				//return false;
-			}
-
-			// set up the goal states
-			_pActiveNode = new RrtNode(GetNumDOF(),true,num_goals);
-			_pActiveNode->SetConfig(&_pGoalConfig[0]);
-			_pActiveNode->SetTSRChainValues(vTSRChainValues_temp);
-			num_goals++;
-
-			_pBackwardTree->AddNode(*_pActiveNode);
-
-			delete _pActiveNode;
-
-			if(goal_index == (int)_parameters->vgoalconfig.size())
-				break;
-
-		}
-
-		if (num_goals !=0)
-		  RAVELOG_DEBUG("Goal State Node(s) Created\n");
-		else
-		{
-		  RAVELOG_DEBUG("Could not initialize Goal Configuration\n");
-		  _outputstream << "Could not initialize Goal Configuration\n";
-		  return false;
-		}
-	}
-	return true;
-}

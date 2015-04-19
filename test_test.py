@@ -38,6 +38,10 @@ from TSR import *
 import time
 import sys
 
+def waitrobot(robot):
+    """busy wait for robot completion"""
+    while not robot.GetController().IsDone():
+        time.sleep(0.01)
 
 if __name__ == "__main__":
       
@@ -68,7 +72,7 @@ if __name__ == "__main__":
 
     #create problem instances
     #RaveLoadPlugin("planning/socbirrt/build/SOCBiRRT")
-    probs_cbirrt = RaveCreateProblem(orEnv,'SOCBiRRT')
+    probs_cbirrt = RaveCreateProblem(orEnv,'CBiRRT')
     orEnv.LoadProblem(probs_cbirrt,'BarrettWAM')
 
     #set up joint indices
@@ -118,14 +122,22 @@ if __name__ == "__main__":
     TSRChainString2 = SerializeTSRChain(0,1,0,1,TSRstring2,'NULL',[])
 
     #call the cbirrt planner, it will generate a file with the trajectory called 'cmovetraj.txt'
-    resp = probs_cbirrt.SendCommand('RunSoCBiRRT timelimit 18 goalobject juice psample 0.25 %s %s'%(TSRChainString1,TSRChainString2))
+    resp = probs_cbirrt.SendCommand('RunCBiRRT psample 0.25 %s'%(TSRChainString1))
+    probs_cbirrt.SendCommand('traj cmovetraj.txt')
+    
+#    traj=RaveCreateTrajectory(orEnv,'BarrettWAM')
+#    traj.Read('cmovetraj.txt',robot)
+#    robot.GetController().SetPath(traj)
+#    robot.WaitForController(0)
+    waitrobot(robot)
+
+    resp = probs_cbirrt.SendCommand('RunCBiRRT psample 0.25 %s'%(TSRChainString2))
     probs_cbirrt.SendCommand('traj cmovetraj.txt')
     
 #    traj=RaveCreateTrajectory(orEnv,'BarrettWAM')
 #    traj.Read('cmovetraj.txt',robot)
 #    robot.GetController().SetPath(traj)
     robot.WaitForController(0)
-    
 
     print "Press return to exit."
     sys.stdin.readline()

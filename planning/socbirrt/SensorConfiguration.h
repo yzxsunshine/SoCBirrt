@@ -12,7 +12,7 @@
 
 class SensorConfiguration {
 public:
-	SensorConfiguration(EnvironmentBasePtr penv, double deltaTime, double velMag);
+	SensorConfiguration(EnvironmentBasePtr penv, double deltaTime, double velMag, string goalName);
 	virtual ~SensorConfiguration() {};
 
 private:
@@ -21,6 +21,7 @@ private:
 	double m_velMag;	// velocity magnitude
 	EnvironmentBasePtr m_env;
 	RaveVector<dReal> m_goal;
+	KinBodyPtr m_goalObject;
 public:
 	void SetInitGoal(RaveVector<dReal> goal) {
 		m_goal = goal;
@@ -31,6 +32,8 @@ public:
 	}
 
 	RaveVector<dReal> ReadSensorData(double curTime);
+
+	void SetGoalTranform(Transform Tg);
 };
 
 #endif /* SENSORCONFIGURATION_H_ */

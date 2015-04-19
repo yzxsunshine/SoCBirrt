@@ -696,6 +696,8 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     string smoothtrajfilename;
     params->Tattachedik_0.resize(robot->GetManipulators().size());
 
+    string goalObjectName;
+
     while(!sinput.eof()) {
         sinput >> cmd;
         if( !sinput )
@@ -829,6 +831,10 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 		{
 			   sinput >> velMag;
 		}
+        else if( stricmp(cmd.c_str(), "goalobject") == 0 )
+		{
+			   sinput >> goalObjectName;
+		}
         else break;
         if( !sinput ) {
             RAVELOG_DEBUG("failed\n");
@@ -861,18 +867,7 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
         params->vgoalconfig.push_back(goals[i]);
 
 
-    PlannerBasePtr _pTCplanner;
     //boost::shared_ptr<SoCBirrtPlanner> _pTCplanner;
-
-
-
-    _pTCplanner = RaveCreatePlanner(GetEnv(),"SoCBirrt");
-    if( _pTCplanner == NULL ) {
-        RAVELOG_INFO("failed to create planner\n");
-        sout << 0;
-        return -1;
-    }
-    //ptraj->Clear();
 
         
     OpenRAVE::PlannerStatus bSuccess = PS_Failed;
@@ -886,13 +881,6 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 
     /* Send over pointer to our planner state */
     params->pplannerstate = &_plannerState;
-
-    if( !_pTCplanner->InitPlan(robot, params) ) {
-        RAVELOG_INFO("InitPlan failed\n");
-        _pTCplanner->SendCommand(outputstream,command);
-        sout << 0 << " InitPlan failed\n" << outputstream.str();
-        return -1;
-    }
 
 
     /* Fix joint limits if current values are outside! */ 
@@ -942,17 +930,18 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 
 
     double sigma = 0.0;  //
-    SensorConfiguration sc(GetEnv(), sensorDeltaTime, velMag);
+    SensorConfiguration sc(GetEnv(), sensorDeltaTime, velMag, goalObjectName);
     std::vector<dReal> curConfig, goalConfig;
     robot->GetActiveDOFValues(curConfig);
     RaveVector<dReal> goal;
     goal.Set3(0, 0, 0);
     sc.SetInitGoal(goal);
     std::vector<dReal> dofVals;
-    robot->GetDOFValues(dofVals);
-    while (endTime - startTime < params->timelimit) {
+    std::vector<TaskSpaceRegionChain> goalChains = params->vTSRChains;
+    int curGoalChainId = 0;
+    while (endTime - startTime < params->timelimit && curGoalChainId < goalChains.size()) {
     	// Generate new goal
-    	/*TaskSpaceRegion tsr;
+    	TaskSpaceRegion tsr;
     	RaveVector<dReal> newGoal = sc.ReadSensorData(endTime);
     	tsr.T0_w.trans = newGoal;
     	tsr.T0_w.rot.Set4(0, 0, 0, 1);
@@ -964,18 +953,19 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     	tsr.Bw[4][1] = PI / 2;
     	tsr.Bw[5][0] = -PI / 2;
     	tsr.Bw[5][1] = PI / 2;
-*/
-    	//robot->GetActiveDOFValues(curConfig);
+
+    	robot->GetActiveDOFValues(curConfig);
+    	//robot->GetDOFValues(dofVals);
     	// move robot to original place for testing
-    	{
-    		EnvironmentMutex::scoped_lock envlock(GetEnv()->GetMutex());
-    		robot->GetController()->Reset();
-    		//robot->SetActiveDOFValues(curConfig);
-    		robot->GetController()->SetDesired(dofVals);
-    	}
-    	while(!robot->GetController()->IsDone()) {
-			 boost::this_thread::sleep(boost::posix_time::milliseconds(1));
-		}
+    	//{
+    	//	EnvironmentMutex::scoped_lock envlock(GetEnv()->GetMutex());
+    	//	robot->GetController()->Reset();
+    	//	robot->SetActiveDOFValues(curConfig);
+    	//	robot->GetController()->SetDesired(dofVals);
+    	//}
+    	//while(!robot->GetController()->IsDone()) {
+		//	 boost::this_thread::sleep(boost::posix_time::milliseconds(1));
+		//}
 
     	{
     	    EnvironmentMutex::scoped_lock envlock(GetEnv()->GetMutex());
@@ -983,20 +973,28 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 			double estimated_time = 0.0;
 			// Calculate sigma
 			// first get transform of end effector
-	 /*   	Transform T0_s = robot->GetActiveManipulator()->GetEndEffectorTransform();
+	    	Transform T0_s = robot->GetActiveManipulator()->GetEndEffectorTransform();
 			std::vector<dReal> dx;
 			dReal distMag = tsr.DistanceToTSR(T0_s, dx);
 			dReal transDist = sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
 			dReal planningTime = EstimatePlanningTime(transDist, curConfig);
 			dReal sigma = planningTime * sc.GetVelocityMagitude();
-
+			RaveVector<dReal> dir, xaxis, axis;
+			dir.Set3(dx[0]/transDist, dx[1]/transDist, dx[2]/transDist);
+			xaxis.Set3(1, 0, 0);
 			// Set Bound, may change ball to a surface
-			tsr.Bw[0][0] = -sigma;
-			tsr.Bw[0][1] = sigma;
-			tsr.Bw[1][0] = -sigma;
-			tsr.Bw[1][1] = sigma;
-			tsr.Bw[2][0] = -sigma;
-			tsr.Bw[2][1] = sigma;
+			tsr.Tw_e.trans.Set3(dir.x * sigma * 1.25, dir.y * sigma * 1.25, dir.z * sigma * 1.25 + 0.05);
+			dReal theta = acos(dir.dot3(xaxis));
+			axis = dir.Cross(xaxis);
+			axis = axis.normalize3() * sin(theta/2);
+
+			tsr.Tw_e.rot.Set4(axis.x, axis.y, axis.z, cos(theta/2));
+			tsr.Bw[0][0] = -0.25 * sigma;
+			tsr.Bw[0][1] = 0.25 * sigma;
+			tsr.Bw[1][0] = -0.25 * sigma;
+			tsr.Bw[1][1] = 0.25 * sigma;
+			tsr.Bw[2][0] = -0.25 * sigma;
+			tsr.Bw[2][1] = 0.25 * sigma;
 
 			TaskSpaceRegionChain tsrc;
 			tsrc.AddTSR(tsr);
@@ -1004,25 +1002,83 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 			tsrc.Initialize(GetEnv());
 
 			std::vector<TaskSpaceRegionChain> tsrChains;
-			tsrChains.push_back(tsrc);
-	*/
+			//tsrChains.push_back(tsrc);
+			tsrChains.push_back(goalChains[curGoalChainId]);
+			sc.SetGoalTranform(goalChains[curGoalChainId].TSRChain[0].T0_w);
+			curGoalChainId++;
+
 			bool doSampling = false;
-			//_pTCplanner->SetTSR(params->vTSRChains, curConfig, goalConfig, doSampling);
-			params->breinitplan = true;
-			//params->vTSRChains = tsrChains;
+			printf("[socbirrtproblem.cpp-RunSoCBiRRT-1029] Start Config");
+			for (int p = 0; p<curConfig.size(); p++) {
+				printf(" %f", curConfig[p]);
+			}
+			printf("\n");
+			params->vTSRChains = tsrChains;
 			params->vinitialconfig = curConfig;
 			params->vgoalconfig = goalConfig;
-			printf("[socbirrtproblem.cpp-RunSoCBiRRT-1018] Planning Started\n");
-			_pTCplanner->InitPlan(robot, params);
+			params->vikguess.clear();
+			printf("[socbirrtproblem.cpp-RunSoCBiRRT-1034] Planning Started\n");
+			PlannerBasePtr _pTCplanner;
+			_pTCplanner = RaveCreatePlanner(GetEnv(),"SoCBirrt");
+			if( _pTCplanner == NULL ) {
+				RAVELOG_INFO("failed to create planner\n");
+				sout << 0;
+				return -1;
+			}
+				//ptr
+			if( !_pTCplanner->InitPlan(robot, params) ) {
+				RAVELOG_INFO("InitPlan failed\n");
+				_pTCplanner->SendCommand(outputstream,command);
+				sout << 0 << " InitPlan failed\n" << outputstream.str();
+				return -1;
+			}
+			//_pTCplanner->InitPlan(robot, params);
 
 			TrajectoryBasePtr ptraj = RaveCreateTrajectory(GetEnv(),"");
 			ptraj->Init(robot->GetActiveConfigurationSpecification());
 
 			bSuccess = _pTCplanner->PlanPath(ptraj);
-			printf("[socbirrtproblem.cpp-RunSoCBiRRT-1011] Planning Finished\n");
+			printf("[socbirrtproblem.cpp-RunSoCBiRRT-1046 Planning Finished\n");
+			std::vector<dReal> wayPt;
+			ptraj->GetWaypoint(0, wayPt);
+			printf("[socbirrtproblem.cpp-RunSoCBiRRT-1049] Start Waypoint");
+			for (int p = 0; p<wayPt.size(); p++) {
+				printf(" %f", wayPt[p]);
+			}
+			printf("\n");
+			ptraj->GetWaypoint(ptraj->GetNumWaypoints()-1, wayPt);
+			printf("[socbirrtproblem.cpp-RunSoCBiRRT-1049] End Waypoint");
+			for (int p = 0; p<wayPt.size(); p++) {
+				printf(" %f", wayPt[p]);
+			}
+			printf("\n");
 			// Merge Tree
-			robot->GetController()->Reset();
+			//robot->GetController()->Reset();
 			robot->GetController()->SetPath(ptraj);
+
+			if(bSuccess == PS_HasSolution)
+				_plannerState = PS_PlanSucceeded;
+			else
+				_plannerState = PS_PlanFailed;
+
+			_plannerState = PS_Idle;
+
+			/* Reset joint limits */
+			for (int j=0; j<_limadj_joints.size(); j++)
+			{
+				joint = _limadj_joints[j];
+				j_lower = _limadj_lowers[j];
+				j_upper = _limadj_uppers[j];
+				joint->SetLimits(j_lower, j_upper);
+			}
+
+			if(bSuccess != PS_HasSolution)
+			{
+				_pTCplanner->SendCommand(outputstream,command);
+				sout << 0 << " " << outputstream.str();
+				return -1;
+			}
+
     	}
     	while(!robot->GetController()->IsDone()) {
     		 boost::this_thread::sleep(boost::posix_time::milliseconds(1));
@@ -1032,28 +1088,7 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     	lastTime = endTime;
     }
 
-    if(bSuccess == PS_HasSolution)
-		_plannerState = PS_PlanSucceeded;
-	else
-		_plannerState = PS_PlanFailed;
 
-	_plannerState = PS_Idle;
-    
-    /* Reset joint limits */
-    for (int j=0; j<_limadj_joints.size(); j++) 
-    { 
-        joint = _limadj_joints[j]; 
-        j_lower = _limadj_lowers[j]; 
-        j_upper = _limadj_uppers[j]; 
-        joint->SetLimits(j_lower, j_upper); 
-    }
-
-    if(bSuccess != PS_HasSolution)
-    {
-        _pTCplanner->SendCommand(outputstream,command);
-        sout << 0 << " " << outputstream.str();
-        return -1;
-    }
 
     //WriteTraj(ptraj, filename);
     //_pTCplanner->SendCommand(outputstream,command);

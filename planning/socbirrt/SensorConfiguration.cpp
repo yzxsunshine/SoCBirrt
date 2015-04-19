@@ -6,8 +6,8 @@
  */
 #include "SensorConfiguration.h"
 
-SensorConfiguration::SensorConfiguration(EnvironmentBasePtr penv, double deltaTime, double velMag) : m_prevTime(-1.0), m_deltaTime(deltaTime), m_velMag(velMag), m_env(penv) {
-
+SensorConfiguration::SensorConfiguration(EnvironmentBasePtr penv, double deltaTime, double velMag, string goalName) : m_prevTime(-1.0), m_deltaTime(deltaTime), m_velMag(velMag), m_env(penv) {
+	m_goalObject = m_env->GetKinBody(goalName);
 }
 
 RaveVector<dReal> SensorConfiguration::ReadSensorData(double curTime) {
@@ -29,6 +29,11 @@ RaveVector<dReal> SensorConfiguration::ReadSensorData(double curTime) {
 	m_prevTime = curTime;
 	return m_goal;
 #endif
+
+}
+
+void SensorConfiguration::SetGoalTranform(Transform Tg) {
+	m_goalObject->SetTransform(Tg);
 }
 
 

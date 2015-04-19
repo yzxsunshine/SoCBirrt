@@ -110,18 +110,21 @@ if __name__ == "__main__":
 
     #now define the second TSR chain
     #it is the same as the first TSR Chain except Tw_e is different (the hand is rotated by 180 degrees about its z axis)
-    Tw_e2 = MakeTransform(rodrigues([0, pi, 0])*rodrigues([pi/2, 0, 0]),mat([0, 0.20, 0.1]).T)
+    #Tw_e2 = MakeTransform(rodrigues([0, pi, 0])*rodrigues([pi/2, 0, 0]),mat([0, 0.20, 0.1]).T)
+    #TSRstring2 = SerializeTSR(0,'NULL',T0_w,Tw_e2,Bw)
+    #TSRChainString2 = SerializeTSRChain(0,1,0,1,TSRstring2,'NULL',[])
+    Tw_e2 = MakeTransform(rodrigues([pi/2, 0, 0]),mat([0.3, 0.25, 0.1]).T)
     TSRstring2 = SerializeTSR(0,'NULL',T0_w,Tw_e2,Bw)
     TSRChainString2 = SerializeTSRChain(0,1,0,1,TSRstring2,'NULL',[])
 
     #call the cbirrt planner, it will generate a file with the trajectory called 'cmovetraj.txt'
-    resp = probs_cbirrt.SendCommand('RunSoCBiRRT timelimit 18 psample 0.25 %s %s'%(TSRChainString1,TSRChainString2))
-    probs_cbirrt.SendCommand('traj cmovetraj.txt')
+    resp = probs_cbirrt.SendCommand('RunSoCBiRRT timelimit 18 goalobject juice psample 0.25 %s %s'%(TSRChainString1,TSRChainString2))
+#    probs_cbirrt.SendCommand('traj cmovetraj.txt')
     
 #    traj=RaveCreateTrajectory(orEnv,'BarrettWAM')
 #    traj.Read('cmovetraj.txt',robot)
 #    robot.GetController().SetPath(traj)
-    robot.WaitForController(0)
+#    robot.WaitForController(0)
     
 
     print "Press return to exit."

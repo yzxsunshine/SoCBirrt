@@ -245,7 +245,6 @@ public:
     bool _OptimizePath(bool &bTerminated, double starttime); ///< path smoothing/optimization is done here, if the planning is terminated from outside (not because of time limit), this will be set to true
     bool _CreateTraj(TrajectoryBasePtr traj); ///< make a trajectory from the path, trajectories for mimiced bodies are also created here
 
-    bool SetTSR(std::vector<TaskSpaceRegionChain>& tsrChains, std::vector<dReal>& initConfig, std::vector<dReal>& goalConfig, bool& bDoingSampling);
 private:
 
     // Methods
