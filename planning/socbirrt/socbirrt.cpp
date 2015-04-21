@@ -72,7 +72,7 @@ void  PrintMatrix(dReal* pMatrix, int numrows, int numcols, const char * stateme
 }
 
 
-
+std::vector<RrtNode>* SoCBirrtPlanner::treenodes;
 
 SoCBirrtPlanner::~SoCBirrtPlanner()
 {
@@ -114,8 +114,7 @@ bool SoCBirrtPlanner::InitPlan(RobotBasePtr  pbase, PlannerParametersConstPtr pp
     {
         _parameters.reset(new SoCBirrtParameters());
         _parameters->copy(pparams);
-        //_parameters->copy(pparams);
-       
+        //_parameters = pparams;
     }
     else
     {
@@ -304,6 +303,10 @@ bool SoCBirrtPlanner::InitPlan(RobotBasePtr  pbase, PlannerParametersConstPtr pp
     _pForwardTree->_pMakeNext = new MakeNext(_pForwardTree->GetFromGoal(),GetNumDOF(),_pRobot,this);
     _pBackwardTree->_pMakeNext = new MakeNext(_pBackwardTree->GetFromGoal(),GetNumDOF(),_pRobot,this);
 
+    if(treenodes != NULL && treenodes->size() > 0) {
+    	_pForwardTree->AddNodes(treenodes);
+    }
+    printf("Initial nodes: t-%d; f-%d; b-%d\n", treenodes->size(), _pForwardTree->GetSize(), _pBackwardTree->GetSize());
     RAVELOG_INFO("grabbed: %d\n",_parameters->bgrabbed);
 
 
@@ -408,6 +411,9 @@ bool SoCBirrtPlanner::InitPlan(RobotBasePtr  pbase, PlannerParametersConstPtr pp
 			    _pActiveNode->SetConfig(&_pInitConfig[0]);
 			    _pActiveNode->SetTSRChainValues(vTSRChainValues_temp);
 			    _pActiveNode->SetParent(num_starts+projectednode_id-1);
+			    printf("[socbirrt.cpp-SoCBirrtPlanner::InitPlan] Add node to parent's child list\n");
+			    _pForwardTree->GetNode(num_starts+projectednode_id-1)->AddChild(num_starts+projectednode_id);
+			    printf("[socbirrt.cpp-SoCBirrtPlanner::InitPlan] Add current node to tree list\n");
 			    _pForwardTree->AddNode(*_pActiveNode);
 			    delete _pActiveNode;
 
@@ -589,21 +595,21 @@ OpenRAVE::PlannerStatus SoCBirrtPlanner::PlanPath(TrajectoryBasePtr ptraj)
                 if(_parameters->vikguess.size() == 0)
                 {
                     _PickRandomConfig();
-                    printf("[socbirrt.cpp-PlanPath-300] _randomConfig\n");
-					for (int v=0; v<_randomConfig.size(); v++) {
-						printf(" %f", _randomConfig[v]);
-					}
-					printf("\n");
+                    //printf("[socbirrt.cpp-PlanPath-300] _randomConfig\n");
+					//for (int v=0; v<_randomConfig.size(); v++) {
+					//	printf(" %f", _randomConfig[v]);
+					//}
+					//printf("\n");
                     if(_pForwardTree->_pMakeNext->AddRootConfiguration(_pForwardTree,_randomConfig) )
                         break;
                 }
                 else
                 {
-                	printf("[socbirrt.cpp-PlanPath-305 vikguess\n");
-                	for (int v=0; v<_parameters->vikguess.size(); v++) {
-                		printf(" %f", _parameters->vikguess[v]);
-                	}
-                	printf("\n");
+                	//printf("[socbirrt.cpp-PlanPath-305 vikguess\n");
+                	//for (int v=0; v<_parameters->vikguess.size(); v++) {
+                	//	printf(" %f", _parameters->vikguess[v]);
+                	//}
+                	//printf("\n");
                 	if(_pForwardTree->_pMakeNext->AddRootConfiguration(_pForwardTree,_parameters->vikguess) )
                         break;
                 }
@@ -653,11 +659,11 @@ OpenRAVE::PlannerStatus SoCBirrtPlanner::PlanPath(TrajectoryBasePtr ptraj)
 
         RAVELOG_DEBUG("Sampling Random Config\n");
         _PickRandomConfig();
-        printf("[socbirrt.cpp-PlanPath-364] _randomConfig\n");
-		for (int v=0; v<_randomConfig.size(); v++) {
-			printf(" %f", _randomConfig[v]);
-		}
-		printf("\n");
+        //printf("[socbirrt.cpp-PlanPath-364] _randomConfig\n");
+		//for (int v=0; v<_randomConfig.size(); v++) {
+		//	printf(" %f", _randomConfig[v]);
+		//}
+		//printf("\n");
         //Tree A
         iclosest = _FindClosest(TreeA);
         RAVELOG_DEBUG("Extending TreeA toward random config\n");
@@ -767,6 +773,7 @@ OpenRAVE::PlannerStatus SoCBirrtPlanner::PlanPath(TrajectoryBasePtr ptraj)
     
     //construct optimized trajectory
     _JoinPathHalves();
+    MergeTree();
     bool bTerminated;
     _OptimizePath(bTerminated, starttime);
     if(bTerminated)
@@ -1646,14 +1653,19 @@ bool SoCBirrtPlanner::MakeNext::MakeNodes(int TreeSize, RrtNode* StartNode, std:
 
             //create a node with this configuration
             RrtNode* pnewnode = new RrtNode(numDOF,StartNode->GetFromGoal(),TreeSize++);
-            if(voutput->size() == 0)
+            if(voutput->size() == 0) {
                 pnewnode->SetParent(StartNode->GetID());
-            else
+                //printf("[socbirrt.cpp-SoCBirrtPlanner::MakeNext::MakeNodes] Add node to parent (id %d) 's child list\n", TreeSize-1);
+                StartNode->AddChild(TreeSize-1);
+            }
+            else {
                 pnewnode->SetParent(voutput->back().GetID());
-
+                //printf("[socbirrt.cpp-SoCBirrtPlanner::MakeNext::MakeNodes] Add node to parent (id %d) 's child list\n", TreeSize-1);
+                voutput->back().AddChild(TreeSize-1);
+            }
             pnewnode->SetConfig(&newConfig[0]);
             pnewnode->SetTSRChainValues(_planner->vTSRChainValues_temp); 
-
+            //printf("[socbirrt.cpp-SoCBirrtPlanner::MakeNext::MakeNodes] push current node to tree list list\n");
             voutput->push_back(*pnewnode);
 
             delete pnewnode;
@@ -1917,3 +1929,102 @@ bool SoCBirrtPlanner::MakeNext::CheckSupport(bool bDraw)
     }
 }
 
+bool SoCBirrtPlanner::SetForwardTree(NodeTree* tree) {
+	if (tree != NULL && _pForwardTree != tree) {
+		if (_pForwardTree != NULL) {
+			delete _pForwardTree;
+		}
+		_pForwardTree = tree;
+	}
+	return true;
+}
+bool SoCBirrtPlanner::MergeTree(void) {
+	if(_pForwardTree->_iConnected < 0 || _pBackwardTree->_iConnected < 0)
+		return false;
+	RrtNode* _pForwardTreeNode = _pForwardTree->GetNode(_pForwardTree->_iConnected);
+	int parentId = -1;
+	//printf("Reverse forward nodes: ");
+	// reverse the path of forward tree
+	if(_pForwardTree->GetNode(_pForwardTree->_iConnected)->GetParent() == -1) {
+		_pActiveNode = _pForwardTree->GetNode(_pForwardTree->_iConnected);
+		// no need reverse as the connect point (next init) is the same with current init.
+	}
+	else
+	{
+		int curID = _pForwardTreeNode->GetID();
+		parentId = _pForwardTreeNode->GetParent();
+		_pForwardTreeNode->DeleteChild(parentId);
+		_pForwardTreeNode->SetParent(-1);
+		//printf("[%d - %d] ", curID, parentId);
+		bool bduplicate = true;
+		while(true)
+		{
+			_pActiveNode = _pForwardTree->GetNode(parentId);
+
+			parentId = _pActiveNode->GetParent();
+			_pActiveNode->AddChild(parentId);
+			_pActiveNode->DeleteChild(curID);
+			_pActiveNode->SetParent(curID);
+			curID = _pActiveNode->GetID();
+			printf("[%d - %d] ", curID, parentId);
+			if(parentId == -1 || curID == -1)
+				break;
+		}
+	}
+	//printf("\n");
+	//printf("Reverse backward nodes: ");
+	// add backward tree to path
+	parentId = _pForwardTreeNode->GetID();
+	if(_pBackwardTree->GetNode(_pBackwardTree->_iConnected)->GetParent() == -1) {
+	    _pActiveNode = _pBackwardTree->GetNode(_pBackwardTree->_iConnected);
+	    // no need to merge as the connect point is the root of goal.
+	}
+	else
+	{
+		_pActiveNode = _pBackwardTree->GetNode(_pBackwardTree->GetNode(_pBackwardTree->_iConnected)->GetParent());
+		int duplicateID = _pActiveNode->GetID();
+		bool bduplicate = true;
+		while(true)
+		{
+			int index = _pActiveNode->GetParent();
+			if(index == -1)
+				break;
+			_pActiveNode = _pBackwardTree->GetNode(index);
+			RrtNode pNode(_pActiveNode->GetDataVector()->size(), false, _pForwardTree->GetSize());
+			pNode.SetConfig(*(_pActiveNode->GetDataVector()));
+			std::vector<dReal> tsrChainValues = _pActiveNode->GetTSRChainValues();
+			pNode.SetTSRChainValues(tsrChainValues);
+			pNode.SetParent(parentId);
+			parentId = _pForwardTree->GetSize();
+			_pForwardTree->AddNode(pNode);
+			AddNodeToForwardTree(_pActiveNode, duplicateID, parentId);	// add child nodes
+		}
+	}
+	//printf("\n");
+	//printf("Start Copy");
+	//(*treenodes) = _pForwardTree->GetNodes();
+	for (int i=0; i<_pForwardTree->GetNodes().size(); i++) {
+		treenodes->push_back(_pForwardTree->GetNodes()[i]);
+	}
+	//std::copy(_pForwardTree->GetNodes().begin(), _pForwardTree->GetNodes().end(), treenodes->begin());
+	//printf("Tree size %d \n", treenodes->size());
+	return true;
+}
+
+bool SoCBirrtPlanner::AddNodeToForwardTree(RrtNode* node, int duplicateID, int parentID) {
+	//printf("%d - ", parentID);
+	RrtNode pNode(node->GetDataVector()->size(), false, _pForwardTree->GetSize());
+	pNode.SetConfig(*(node->GetDataVector()));
+	std::vector<dReal> tsrChainValues = node->GetTSRChainValues();
+	pNode.SetTSRChainValues(tsrChainValues);
+	pNode.SetParent(parentID);
+	parentID = _pForwardTree->GetSize();
+	_pForwardTree->AddNode(pNode);
+	std::vector<int> cids = node->GetChildren();	// children ids
+	for (int i=0; i<cids.size(); i++) {	// add child trees to new tree
+		if(cids[i] >= 0 && _pBackwardTree->GetNode(cids[i])->GetID() != duplicateID) {
+			AddNodeToForwardTree(_pBackwardTree->GetNode(cids[i]), -1, parentID);
+		}
+	}
+	return true;
+}

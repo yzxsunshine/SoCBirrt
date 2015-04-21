@@ -32,6 +32,7 @@
 #ifndef  SOCPARAMETERS_H
 #define  SOCPARAMETERS_H
 
+class RrtNode;
 /// class for passing parameters to cbirrt planner
 class SoCBirrtParameters : public PlannerBase::PlannerParameters
 {

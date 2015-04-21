@@ -939,6 +939,7 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     std::vector<dReal> dofVals;
     std::vector<TaskSpaceRegionChain> goalChains = params->vTSRChains;
     int curGoalChainId = 0;
+    SoCBirrtPlanner::treenodes = new std::vector<RrtNode>();
     while (endTime - startTime < params->timelimit && curGoalChainId < goalChains.size()) {
     	// Generate new goal
     	TaskSpaceRegion tsr;
@@ -1025,7 +1026,7 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 				sout << 0;
 				return -1;
 			}
-				//ptr
+
 			if( !_pTCplanner->InitPlan(robot, params) ) {
 				RAVELOG_INFO("InitPlan failed\n");
 				_pTCplanner->SendCommand(outputstream,command);
@@ -1087,7 +1088,7 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     	double deltTime = endTime - lastTime;
     	lastTime = endTime;
     }
-
+    delete SoCBirrtPlanner::treenodes;
 
 
     //WriteTraj(ptraj, filename);

@@ -48,15 +48,26 @@ public:
     inline void Reset() { _iParent = -1; _bFromGoal = false; }
     
     inline void SetConfig(const dReal *pConfig) { memcpy(&_data[0], pConfig, _data.size()*sizeof(_data[0])); }
+    inline void SetConfig(const std::vector<dReal> config) { _data = config; }
     inline void SetParent(int parent){_iParent = parent;}
     inline int GetID(){return _iID;}
     inline dReal* GetData() { return &_data[0]; }
     inline vector<dReal>* GetDataVector() { return &_data; }
+    inline vector<int> GetChildren() { return _iChildren; }
     inline int GetParent() { return _iParent; }
 
     inline bool GetFromGoal() { return _bFromGoal; }
     inline void SetFromGoal(bool newVal) { _bFromGoal = newVal; }
-
+    void AddChild(int id) {_iChildren.push_back(id);}
+    void DeleteChild(int id) {
+    	vector<int>::iterator iter = _iChildren.begin();
+    	for (; iter!=_iChildren.end(); iter++) {
+    		if(*iter == id) {
+    			iter = _iChildren.erase(iter);
+    			break;
+    		}
+    	}
+    }
     inline void Print() {
         if( RaveGetDebugLevel() ) {
             stringstream s;
@@ -78,6 +89,7 @@ private:
     vector<dReal> _data;
     bool       _bFromGoal;
     int        _iID;
+    std::vector<int> _iChildren;
 
     std::vector<dReal> vTSRChainValues;
 };
@@ -193,7 +205,9 @@ public:
         int GetSize() const {return (int)_vnodes.size();} ///< get the size of the tree
         bool GetFromGoal() const {return _bFromGoal;} ///< returns 1 if this tree is a goal tree, 0 otherwise
         void DeleteNodes() {_vnodes.clear(); _vnodes.reserve(1000);} ///< delete all nodes in the tree
-
+        std::vector<RrtNode>& GetNodes() {
+        	return _vnodes;
+        }
         int _iConnected;
         MakeNext* _pMakeNext;
         
@@ -245,6 +259,11 @@ public:
     bool _OptimizePath(bool &bTerminated, double starttime); ///< path smoothing/optimization is done here, if the planning is terminated from outside (not because of time limit), this will be set to true
     bool _CreateTraj(TrajectoryBasePtr traj); ///< make a trajectory from the path, trajectories for mimiced bodies are also created here
 
+    bool SetForwardTree(NodeTree* tree);
+    bool MergeTree(void);
+    bool AddNodeToForwardTree(RrtNode* node, int duplicateID, int parentID);
+public:
+    static std::vector<RrtNode>* treenodes;
 private:
 
     // Methods
