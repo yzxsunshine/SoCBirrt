@@ -691,13 +691,14 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     double lastTime = 0.0;
     double sensorDeltaTime = 0.030; // 30 milisecond per frame
     double velMag = 0.001;
+    double goalthreshold = 0.1;
 
     string filename = "cmovetraj.txt";
     string smoothtrajfilename;
     params->Tattachedik_0.resize(robot->GetManipulators().size());
 
     string goalObjectName;
-
+    _planning_alpha = 10.0;
     while(!sinput.eof()) {
         sinput >> cmd;
         if( !sinput )
@@ -835,6 +836,14 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 		{
 			   sinput >> goalObjectName;
 		}
+        else if( stricmp(cmd.c_str(), "planning_alpha") == 0 )
+		{
+			   sinput >> _planning_alpha;
+		}
+        else if( stricmp(cmd.c_str(), "goalthreshold") == 0 )
+		{
+			   sinput >> goalthreshold;
+		}
         else break;
         if( !sinput ) {
             RAVELOG_DEBUG("failed\n");
@@ -933,44 +942,38 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     SensorConfiguration sc(GetEnv(), sensorDeltaTime, velMag, goalObjectName);
     std::vector<dReal> curConfig, goalConfig;
     robot->GetActiveDOFValues(curConfig);
-    RaveVector<dReal> goal;
-    goal.Set3(0, 0, 0);
-    sc.SetInitGoal(goal);
+
     std::vector<dReal> dofVals;
     std::vector<TaskSpaceRegionChain> goalChains = params->vTSRChains;
     int curGoalChainId = 0;
+    RaveVector<dReal> goal = goalChains[0].TSRChain[0].T0_w.trans;
+    sc.SetInitGoal(goal);
     SoCBirrtPlanner::treenodes = new std::vector<RrtNode>();
-    while (endTime - startTime < params->timelimit && curGoalChainId < goalChains.size()) {
+    OpenRAVE::KinBodyPtr ball;
+    bool reachGoal = false;
+    while (endTime - startTime < params->timelimit && !reachGoal) {
     	// Generate new goal
-    	TaskSpaceRegion tsr;
-    	RaveVector<dReal> newGoal = sc.ReadSensorData(endTime);
-    	tsr.T0_w.trans = newGoal;
-    	tsr.T0_w.rot.Set4(0, 0, 0, 1);
-    	tsr.Tw_e.trans.Set3(0, 0, 0.05);
-    	tsr.Tw_e.rot.Set4(0, 0, 0, 1);
-    	tsr.Bw[3][0] = -PI / 2;
-    	tsr.Bw[3][1] = PI / 2;
-    	tsr.Bw[4][0] = -PI / 2;
-    	tsr.Bw[4][1] = PI / 2;
-    	tsr.Bw[5][0] = -PI / 2;
-    	tsr.Bw[5][1] = PI / 2;
-
-    	robot->GetActiveDOFValues(curConfig);
-    	//robot->GetDOFValues(dofVals);
-    	// move robot to original place for testing
-    	//{
-    	//	EnvironmentMutex::scoped_lock envlock(GetEnv()->GetMutex());
-    	//	robot->GetController()->Reset();
-    	//	robot->SetActiveDOFValues(curConfig);
-    	//	robot->GetController()->SetDesired(dofVals);
-    	//}
-    	//while(!robot->GetController()->IsDone()) {
-		//	 boost::this_thread::sleep(boost::posix_time::milliseconds(1));
-		//}
-
+    	RaveVector<dReal> newGoal;
+    	dReal sigma;
     	{
     	    EnvironmentMutex::scoped_lock envlock(GetEnv()->GetMutex());
 			// Estimate planning & execution time
+    	    if(ball) {
+    	    	GetEnv()->Remove(ball);
+    	    	ball->Destroy();
+    	    }
+    	    newGoal = sc.ReadSensorData(endTime);
+			TaskSpaceRegion tsr;
+			tsr.T0_w.trans = newGoal;
+			tsr.T0_w.rot.Set4(0, 0, 0, 1);
+			tsr.Bw[3][0] = -PI;
+			tsr.Bw[3][1] = PI;
+			tsr.Bw[4][0] = -PI;
+			tsr.Bw[4][1] = PI;
+			tsr.Bw[5][0] = -PI;
+			tsr.Bw[5][1] = PI;
+
+			robot->GetActiveDOFValues(curConfig);
 			double estimated_time = 0.0;
 			// Calculate sigma
 			// first get transform of end effector
@@ -979,41 +982,62 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 			dReal distMag = tsr.DistanceToTSR(T0_s, dx);
 			dReal transDist = sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
 			dReal planningTime = EstimatePlanningTime(transDist, curConfig);
-			dReal sigma = planningTime * sc.GetVelocityMagitude();
-			RaveVector<dReal> dir, xaxis, axis;
-			dir.Set3(dx[0]/transDist, dx[1]/transDist, dx[2]/transDist);
-			xaxis.Set3(1, 0, 0);
-			// Set Bound, may change ball to a surface
-			tsr.Tw_e.trans.Set3(dir.x * sigma * 1.25, dir.y * sigma * 1.25, dir.z * sigma * 1.25 + 0.05);
-			dReal theta = acos(dir.dot3(xaxis));
-			axis = dir.Cross(xaxis);
-			axis = axis.normalize3() * sin(theta/2);
+			sigma = planningTime * sc.GetVelocityMagitude();
+			printf("[socbirrtproblem.cpp-987] sigma: %f, dist:%f\n", sigma, transDist);
 
-			tsr.Tw_e.rot.Set4(axis.x, axis.y, axis.z, cos(theta/2));
-			tsr.Bw[0][0] = -0.25 * sigma;
-			tsr.Bw[0][1] = 0.25 * sigma;
-			tsr.Bw[1][0] = -0.25 * sigma;
-			tsr.Bw[1][1] = 0.25 * sigma;
-			tsr.Bw[2][0] = -0.25 * sigma;
-			tsr.Bw[2][1] = 0.25 * sigma;
+			if(sigma < goalthreshold) {
+				tsr.Tw_e.trans.Set3(0, 0, 0.05);
+
+				tsr.Bw[0][0] = -sigma;
+				tsr.Bw[0][1] = sigma;
+				tsr.Bw[1][0] = -sigma;
+				tsr.Bw[1][1] = sigma;
+				tsr.Bw[2][0] = -sigma;
+				tsr.Bw[2][1] = sigma;
+				reachGoal = true;
+			}
+			else {
+				RaveVector<dReal> dir, xaxis, axis;
+				dir.Set3(dx[0]/transDist, dx[1]/transDist, dx[2]/transDist);
+				xaxis.Set3(1, 0, 0);
+				// Set Bound, may change ball to a surface
+				tsr.Tw_e.trans.Set3(dir.x * sigma * 1.25, dir.y * sigma * 1.25, dir.z * sigma * 1.25 + 0.05);
+				dReal theta = acos(dir.dot3(xaxis));
+				axis = dir.Cross(xaxis);
+				axis = axis.normalize3() * sin(theta/2);
+
+
+				tsr.Tw_e.rot.Set4(axis.x, axis.y, axis.z, cos(theta/2));
+				tsr.Bw[0][0] = -0.25 * sigma;
+				tsr.Bw[0][1] = 0.25 * sigma;
+				tsr.Bw[1][0] = -0.25 * sigma;
+				tsr.Bw[1][1] = 0.25 * sigma;
+				tsr.Bw[2][0] = -0.25 * sigma;
+				tsr.Bw[2][1] = 0.25 * sigma;
+			}
+			tsr.relativelinkname = "NULL";
+			tsr.relativebodyname = "NULL";
+			tsr.manipind = 0;
+			tsr.Initialize(GetEnv());
 
 			TaskSpaceRegionChain tsrc;
-			tsrc.AddTSR(tsr);
 			tsrc.SetParameters(false, true, false);
+			tsrc.SetMimicBodyName("NULL");
+			tsrc.AddTSR(tsr);
 			tsrc.Initialize(GetEnv());
 
 			std::vector<TaskSpaceRegionChain> tsrChains;
-			//tsrChains.push_back(tsrc);
-			tsrChains.push_back(goalChains[curGoalChainId]);
-			sc.SetGoalTranform(goalChains[curGoalChainId].TSRChain[0].T0_w);
+			tsrChains.push_back(tsrc);
+			//tsrChains.push_back(goalChains[curGoalChainId]);
+			//sc.SetGoalTranform(goalChains[curGoalChainId].TSRChain[0].T0_w);
 			curGoalChainId++;
 
 			bool doSampling = false;
-			printf("[socbirrtproblem.cpp-RunSoCBiRRT-1029] Start Config");
-			for (int p = 0; p<curConfig.size(); p++) {
-				printf(" %f", curConfig[p]);
-			}
-			printf("\n");
+			//printf("[socbirrtproblem.cpp-RunSoCBiRRT-1029] Start Config");
+			//for (int p = 0; p<curConfig.size(); p++) {
+			//	printf(" %f", curConfig[p]);
+			//}
+			//printf("\n");
 			params->vTSRChains = tsrChains;
 			params->vinitialconfig = curConfig;
 			params->vgoalconfig = goalConfig;
@@ -1031,37 +1055,38 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 				RAVELOG_INFO("InitPlan failed\n");
 				_pTCplanner->SendCommand(outputstream,command);
 				sout << 0 << " InitPlan failed\n" << outputstream.str();
-				return -1;
+				reachGoal = false;
+				continue;
 			}
-			//_pTCplanner->InitPlan(robot, params);
 
 			TrajectoryBasePtr ptraj = RaveCreateTrajectory(GetEnv(),"");
 			ptraj->Init(robot->GetActiveConfigurationSpecification());
 
 			bSuccess = _pTCplanner->PlanPath(ptraj);
 			printf("[socbirrtproblem.cpp-RunSoCBiRRT-1046 Planning Finished\n");
-			std::vector<dReal> wayPt;
-			ptraj->GetWaypoint(0, wayPt);
-			printf("[socbirrtproblem.cpp-RunSoCBiRRT-1049] Start Waypoint");
-			for (int p = 0; p<wayPt.size(); p++) {
-				printf(" %f", wayPt[p]);
-			}
-			printf("\n");
-			ptraj->GetWaypoint(ptraj->GetNumWaypoints()-1, wayPt);
-			printf("[socbirrtproblem.cpp-RunSoCBiRRT-1049] End Waypoint");
-			for (int p = 0; p<wayPt.size(); p++) {
-				printf(" %f", wayPt[p]);
-			}
-			printf("\n");
+			//std::vector<dReal> wayPt;
+			//ptraj->GetWaypoint(0, wayPt);
+			//printf("[socbirrtproblem.cpp-RunSoCBiRRT-1049] Start Waypoint");
+			//for (int p = 0; p<wayPt.size(); p++) {
+			//	printf(" %f", wayPt[p]);
+			//}
+			//printf("\n");
+			//ptraj->GetWaypoint(ptraj->GetNumWaypoints()-1, wayPt);
+			//printf("[socbirrtproblem.cpp-RunSoCBiRRT-1049] End Waypoint");
+			//for (int p = 0; p<wayPt.size(); p++) {
+			//	printf(" %f", wayPt[p]);
+			//}
+			//printf("\n");
 			// Merge Tree
 			//robot->GetController()->Reset();
 			robot->GetController()->SetPath(ptraj);
 
 			if(bSuccess == PS_HasSolution)
 				_plannerState = PS_PlanSucceeded;
-			else
+			else {
 				_plannerState = PS_PlanFailed;
-
+				reachGoal = false;
+			}
 			_plannerState = PS_Idle;
 
 			/* Reset joint limits */
@@ -1081,6 +1106,14 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 			}
 
     	}
+    	ball = RaveCreateKinBody(GetEnv(),"");
+		std::vector<Vector> spheres;
+		spheres.push_back(Vector(newGoal.x, newGoal.y, newGoal.z, sigma));
+		ball->InitFromSpheres(spheres, true);
+		ball->SetName("ball");
+		//KinBody::LinkPtr link = ball->GetLinks()[0];
+		//link->GetGeometry(0)->SetDiffuseColor(Vector(0.0,1.0,0.0));
+		GetEnv()->Add(ball);
     	while(!robot->GetController()->IsDone()) {
     		 boost::this_thread::sleep(boost::posix_time::milliseconds(1));
     	}

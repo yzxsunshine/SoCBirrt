@@ -118,7 +118,7 @@ if __name__ == "__main__":
     TSRChainString2 = SerializeTSRChain(0,1,0,1,TSRstring2,'NULL',[])
 
     #call the cbirrt planner, it will generate a file with the trajectory called 'cmovetraj.txt'
-    resp = probs_cbirrt.SendCommand('RunSoCBiRRT timelimit 18 goalobject juice psample 0.25 %s %s'%(TSRChainString1,TSRChainString2))
+    resp = probs_cbirrt.SendCommand('RunSoCBiRRT timelimit 60 goalobject juice goalvelocitymagnitude 0.001 planning_alpha 500 psample 0.25 %s %s'%(TSRChainString1,TSRChainString2))
 #    probs_cbirrt.SendCommand('traj cmovetraj.txt')
     
 #    traj=RaveCreateTrajectory(orEnv,'BarrettWAM')

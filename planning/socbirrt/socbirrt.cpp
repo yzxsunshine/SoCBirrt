@@ -187,7 +187,7 @@ bool SoCBirrtPlanner::InitPlan(RobotBasePtr  pbase, PlannerParametersConstPtr pp
     bool bDoingConstraint = false;
     bool bDoingSampling = false;
     RobotBasePtr probottemp;
-
+    printf("Chain Started\n");
     for(int i = 0; i < _parameters->vTSRChains.size();i++)
     {
         if(!_parameters->vTSRChains[i].RobotizeTSRChain(GetEnv(),probottemp))
@@ -259,7 +259,7 @@ bool SoCBirrtPlanner::InitPlan(RobotBasePtr  pbase, PlannerParametersConstPtr pp
     vTSRChainValues_temp.resize(numTSRTotalDOF);
 
     RAVELOG_INFO("numdofs: %d\n",_numdofs);
-
+    printf("numdofs: %d\n",_numdofs);
     // invert for speed
     _jointResolutionInv.resize(_jointResolution.size());
     for (int i = 0; i < GetNumDOF(); i++) {
@@ -308,7 +308,6 @@ bool SoCBirrtPlanner::InitPlan(RobotBasePtr  pbase, PlannerParametersConstPtr pp
     }
     printf("Initial nodes: t-%d; f-%d; b-%d\n", treenodes->size(), _pForwardTree->GetSize(), _pBackwardTree->GetSize());
     RAVELOG_INFO("grabbed: %d\n",_parameters->bgrabbed);
-
 
     bSmoothPath = _parameters->bsmoothpath;
 
@@ -631,6 +630,7 @@ OpenRAVE::PlannerStatus SoCBirrtPlanner::PlanPath(TrajectoryBasePtr ptraj)
             printf("[socbirrt.cpp-PlanPath-333] Backward Tree is empty\n");
             while(1)
             {
+            	//printf("[socbirrt.cpp-PlanPath-633] AddRootConfiguration\n");
                 if(_pBackwardTree->_pMakeNext->AddRootConfiguration(_pBackwardTree,_parameters->vikguess) )
                     break;
                 if(timeGetThreadTime() - starttime > max_firstik_time)
@@ -641,7 +641,7 @@ OpenRAVE::PlannerStatus SoCBirrtPlanner::PlanPath(TrajectoryBasePtr ptraj)
                 }
             }
             RAVELOG_INFO("Got first goal ik solution!\n");
-            printf("[socbirrt.cpp-PlanPath-346] Got first goal ik solution\n");
+            printf("[socbirrt.cpp-PlanPath-644] Got first goal ik solution\n");
         }
 
         if(RANDOM_FLOAT() < P_SAMPLE_IK)
@@ -1966,7 +1966,7 @@ bool SoCBirrtPlanner::MergeTree(void) {
 			_pActiveNode->DeleteChild(curID);
 			_pActiveNode->SetParent(curID);
 			curID = _pActiveNode->GetID();
-			printf("[%d - %d] ", curID, parentId);
+			//printf("[%d - %d] ", curID, parentId);
 			if(parentId == -1 || curID == -1)
 				break;
 		}
@@ -2010,7 +2010,7 @@ bool SoCBirrtPlanner::MergeTree(void) {
 	//printf("Tree size %d \n", treenodes->size());
 	return true;
 }
-
+// recursively add back tree nodes to node list
 bool SoCBirrtPlanner::AddNodeToForwardTree(RrtNode* node, int duplicateID, int parentID) {
 	//printf("%d - ", parentID);
 	RrtNode pNode(node->GetDataVector()->size(), false, _pForwardTree->GetSize());

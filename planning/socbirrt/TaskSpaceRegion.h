@@ -121,6 +121,11 @@ public:
     	bConstrainToChain = constrainToChain;
     }
 
+    void SetMimicBodyName(std::string name) {
+    	mimicbodyname = name;
+    	_mimicinds.clear();
+    }
+
 private:
 
     void DestoryRobotizedTSRChain(); ///< delete the virtual manipulator from the environment
