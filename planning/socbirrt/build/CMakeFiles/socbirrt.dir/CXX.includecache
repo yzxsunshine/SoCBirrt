@@ -22,10 +22,6 @@ sstream
 
 /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrtparameters.h
 
-/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrtproblem.cpp
-stdafx.h
-/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/stdafx.h
-
 /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrtproblem.h
 SensorConfiguration.h
 /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/SensorConfiguration.h

@@ -80,7 +80,7 @@ public:
         }
     }
 
-    inline void SetTSRChainValues(std::vector<dReal>& vTSRChainValues_in) {vTSRChainValues = vTSRChainValues_in;}
+    inline void SetTSRChainValues(std::vector<dReal> vTSRChainValues_in) {vTSRChainValues = vTSRChainValues_in;}
     inline std::vector<dReal> GetTSRChainValues(){return vTSRChainValues;} //THIS MUST RETURN A COPY, NOT A REFERENCE
 
 private:
@@ -261,7 +261,7 @@ public:
 
     bool SetForwardTree(NodeTree* tree);
     bool MergeTree(void);
-    bool AddNodeToForwardTree(RrtNode* node, int duplicateID, int parentID);
+    bool AddNodeToTreeNodeList(NodeTree* tree, RrtNode* node, int duplicateID, int parentID);
 public:
     static std::vector<RrtNode>* treenodes;
 private:

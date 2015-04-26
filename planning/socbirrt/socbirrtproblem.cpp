@@ -698,7 +698,9 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     params->Tattachedik_0.resize(robot->GetManipulators().size());
 
     string goalObjectName;
+    int isMergeTree = 0;
     _planning_alpha = 10.0;
+    int isScreenShot = 0;
     while(!sinput.eof()) {
         sinput >> cmd;
         if( !sinput )
@@ -844,6 +846,20 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 		{
 			   sinput >> goalthreshold;
 		}
+        else if( stricmp(cmd.c_str(), "mergetree") == 0 )
+		{
+        	printf("[*********]merge tree started\n");
+			   sinput >> isMergeTree;
+			   if(isMergeTree > 0) {
+				   params->bmergetree = true;
+				   printf("[*********]merge tree is true\n");
+			   }
+			   else
+				   params->bmergetree = false;
+		}
+        else if( stricmp(cmd.c_str(), "screenshot") == 0 ){
+        	sinput >> isScreenShot;
+        }
         else break;
         if( !sinput ) {
             RAVELOG_DEBUG("failed\n");
@@ -966,12 +982,12 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 			TaskSpaceRegion tsr;
 			tsr.T0_w.trans = newGoal;
 			tsr.T0_w.rot.Set4(0, 0, 0, 1);
-			tsr.Bw[3][0] = -PI;
-			tsr.Bw[3][1] = PI;
-			tsr.Bw[4][0] = -PI;
-			tsr.Bw[4][1] = PI;
-			tsr.Bw[5][0] = -PI;
-			tsr.Bw[5][1] = PI;
+			tsr.Bw[3][0] = goalChains[0].TSRChain[0].Bw[3][0];//-PI;
+			tsr.Bw[3][1] = goalChains[0].TSRChain[0].Bw[3][1];//PI;
+			tsr.Bw[4][0] = goalChains[0].TSRChain[0].Bw[4][0];//-PI;
+			tsr.Bw[4][1] = goalChains[0].TSRChain[0].Bw[4][1];//PI;
+			tsr.Bw[5][0] = goalChains[0].TSRChain[0].Bw[5][0];//-PI;
+			tsr.Bw[5][1] = goalChains[0].TSRChain[0].Bw[5][1];//PI;
 
 			robot->GetActiveDOFValues(curConfig);
 			double estimated_time = 0.0;
@@ -1120,6 +1136,11 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     	endTime = timeGetThreadTime();
     	double deltTime = endTime - lastTime;
     	lastTime = endTime;
+
+    	if(isScreenShot)
+    		getchar();
+    	//endTime = timeGetThreadTime();
+    	//lastTime = endTime;
     }
     delete SoCBirrtPlanner::treenodes;
 

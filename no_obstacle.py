@@ -38,7 +38,10 @@ from TSR import *
 import time
 import sys
 
-
+def waitrobot(robot):
+    """busy wait for robot completion"""
+    while not robot.GetController().IsDone():
+        time.sleep(0.01)
 
 if __name__ == "__main__":
       
@@ -50,35 +53,23 @@ if __name__ == "__main__":
         orEnv.SetViewer('qtcoin')
     
     orEnv.Reset()
-    orEnv.Load('ormodels/environments/intelkitchen_robotized_herb2.env.xml')
+    orEnv.Load('ormodels/environments/empty.env.xml')
     
     #load the bottle
     targobject = orEnv.ReadKinBodyXMLFile('ormodels/objects/household/juice_bottle_model.kinbody.xml')
     orEnv.AddKinBody(targobject)
     
     #put the bottle somewhere
-    T0_object = MakeTransform(mat(eye(3)),mat([0.3602,  0.2226, 0.9214]).T)
+    T0_object = MakeTransform(mat(eye(3)),mat([1.0,  0.15, 0.9]).T)
     targobject.SetTransform(array(T0_object[0:3][:,0:4]))
     
     robot = orEnv.GetRobots()[0]   
-    
-    #set printing, display options, and collision checker
-    orEnv.SetDebugLevel(DebugLevel.Info)
-    colchecker = RaveCreateCollisionChecker(orEnv,'ode')
-    orEnv.SetCollisionChecker(colchecker)
 
-    #create problem instances
-    #RaveLoadPlugin("planning/socbirrt/build/SOCBiRRT")
-    probs_cbirrt = RaveCreateProblem(orEnv,'SOCBiRRT')
-    orEnv.LoadProblem(probs_cbirrt,'BarrettWAM')
-
-    #set up joint indices
+     #set up joint indices
     activedofs = [0, 1, 2, 3, 4, 5, 6]
     initdofvals = r_[3.68,   -1.9,   -0.0000,    2.2022,   -0.0000,    0.0000,    -2.1, 2.6,  -1.9,   -0.0000,    2.2022,   -3.14,   0.0000,    -1.0]
     
     #start the robot in a reasonable location and configuration
-    Trobot = array([-0.0024,1,0,-1,-0.0024,0,0,0,1, 0.274, -0.6, 0.000]).reshape(4,3).T
-    robot.SetTransform(array(Trobot))
     robot.SetActiveDOFs(r_[0, 1, 2, 3, 4, 5, 6, 11, 12, 13, 14, 15, 16, 17])
     robot.SetActiveDOFValues(initdofvals)
 
@@ -92,42 +83,30 @@ if __name__ == "__main__":
     #set the active dof
     robot.SetActiveDOFs(activedofs)
 
-    #let's define two TSR chains for this task, they differ only in the rotation of the hand
+    #set printing, display options, and collision checker
+    orEnv.SetDebugLevel(DebugLevel.Info)
+    colchecker = RaveCreateCollisionChecker(orEnv,'ode')
+    orEnv.SetCollisionChecker(colchecker)
 
-    #first TSR chain
+    #create problem instances
+    probs_cbirrt = RaveCreateProblem(orEnv,'SOCBiRRT')
+    orEnv.LoadProblem(probs_cbirrt,'BarrettWAM')
+
+    #TSR chain
 
     #place the first TSR's reference frame at the object's frame relative to world frame
     T0_w = T0_object
 
     #get the TSR's offset frame in w coordinates
-    Tw_e1 = MakeTransform(rodrigues([pi/2, 0, 0]),mat([0, 0.20, 0.1]).T)
+    Tw_e1 = MakeTransform(rodrigues([0, 0, 0]),mat([0, 0.0, -0.05]).T)
 
     #define bounds to only allow rotation of the hand about z axis and a small deviation in translation along the z axis
-    Bw = mat([0, 0,   0, 0,   -0.02, 0.02,   0, 0,   0, 0,   -pi, pi])
+    Bw = mat([0, 0,   0, 0,   -0.02, 0.02,   0, 0,   0, 0,   0, 0])
 
     TSRstring1 = SerializeTSR(0,'NULL',T0_w,Tw_e1,Bw)
     TSRChainString1 = SerializeTSRChain(0,1,0,1,TSRstring1,'NULL',[])
 
-
-    #now define the second TSR chain
-    #it is the same as the first TSR Chain except Tw_e is different (the hand is rotated by 180 degrees about its z axis)
-    #Tw_e2 = MakeTransform(rodrigues([0, pi, 0])*rodrigues([pi/2, 0, 0]),mat([0, 0.20, 0.1]).T)
-    #TSRstring2 = SerializeTSR(0,'NULL',T0_w,Tw_e2,Bw)
-    #TSRChainString2 = SerializeTSRChain(0,1,0,1,TSRstring2,'NULL',[])
-    Tw_e2 = MakeTransform(rodrigues([pi/2, 0, 0]),mat([0.3, 0.25, 0.1]).T)
-    TSRstring2 = SerializeTSR(0,'NULL',T0_w,Tw_e2,Bw)
-    TSRChainString2 = SerializeTSRChain(0,1,0,1,TSRstring2,'NULL',[])
-
-    #call the cbirrt planner, it will generate a file with the trajectory called 'cmovetraj.txt'
-    resp = probs_cbirrt.SendCommand('RunSoCBiRRT timelimit 60 goalobject juice goalvelocitymagnitude 0.001 planning_alpha 500 psample 0.25 %s %s'%(TSRChainString1,TSRChainString2))
-#    probs_cbirrt.SendCommand('traj cmovetraj.txt')
-    
-#    traj=RaveCreateTrajectory(orEnv,'BarrettWAM')
-#    traj.Read('cmovetraj.txt',robot)
-#    robot.GetController().SetPath(traj)
-#    robot.WaitForController(0)
-    
-
+    resp = probs_cbirrt.SendCommand('RunSoCBiRRT timelimit 60 goalobject juice goalvelocitymagnitude 0.01 screenshot 0 mergetree 1 planning_alpha 50 psample 0.05 %s'%(TSRChainString1))
     print "Press return to exit."
     sys.stdin.readline()
 

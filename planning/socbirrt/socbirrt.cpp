@@ -773,7 +773,9 @@ OpenRAVE::PlannerStatus SoCBirrtPlanner::PlanPath(TrajectoryBasePtr ptraj)
     
     //construct optimized trajectory
     _JoinPathHalves();
-    MergeTree();
+    //if(_parameters->bmergetree) {
+    	MergeTree();
+    //}
     bool bTerminated;
     _OptimizePath(bTerminated, starttime);
     if(bTerminated)
@@ -1939,11 +1941,12 @@ bool SoCBirrtPlanner::SetForwardTree(NodeTree* tree) {
 	return true;
 }
 bool SoCBirrtPlanner::MergeTree(void) {
+	printf("[socbirrt.cpp-1944] Merge Tree.\n");
 	if(_pForwardTree->_iConnected < 0 || _pBackwardTree->_iConnected < 0)
 		return false;
 	RrtNode* _pForwardTreeNode = _pForwardTree->GetNode(_pForwardTree->_iConnected);
 	int parentId = -1;
-	//printf("Reverse forward nodes: ");
+	/*//printf("Reverse forward nodes: ");
 	// reverse the path of forward tree
 	if(_pForwardTree->GetNode(_pForwardTree->_iConnected)->GetParent() == -1) {
 		_pActiveNode = _pForwardTree->GetNode(_pForwardTree->_iConnected);
@@ -1971,59 +1974,70 @@ bool SoCBirrtPlanner::MergeTree(void) {
 				break;
 		}
 	}
-	//printf("\n");
-	//printf("Reverse backward nodes: ");
+	//printf("\n");*/
+	printf("Reverse backward nodes: ");
+	// find root first and then start from the root, push them into the new tree.
 	// add backward tree to path
-	parentId = _pForwardTreeNode->GetID();
-	if(_pBackwardTree->GetNode(_pBackwardTree->_iConnected)->GetParent() == -1) {
-	    _pActiveNode = _pBackwardTree->GetNode(_pBackwardTree->_iConnected);
-	    // no need to merge as the connect point is the root of goal.
-	}
-	else
+	/*RrtNode root(_pForwardTreeNode->GetDataVector()->size(), false, 0);
+	root.SetConfig(*(_pForwardTreeNode->GetDataVector()));
+	root.SetTSRChainValues(_pForwardTreeNode->GetTSRChainValues());
+	root.SetParent(-1);
+
+	treenodes->push_back(root);*/
+	treenodes->clear();
+	treenodes->reserve(_pBackwardTree->GetSize());
+	parentId = 0;	// current configuration
+	int rootId = 0;
+	_pActiveNode = _pBackwardTree->GetNode(_pBackwardTree->_iConnected);
+	int duplicateID = _pActiveNode->GetID();
+	bool bduplicate = true;
+	// find root
+	while(true)
 	{
-		_pActiveNode = _pBackwardTree->GetNode(_pBackwardTree->GetNode(_pBackwardTree->_iConnected)->GetParent());
-		int duplicateID = _pActiveNode->GetID();
-		bool bduplicate = true;
-		while(true)
-		{
-			int index = _pActiveNode->GetParent();
-			if(index == -1)
-				break;
-			_pActiveNode = _pBackwardTree->GetNode(index);
-			RrtNode pNode(_pActiveNode->GetDataVector()->size(), false, _pForwardTree->GetSize());
-			pNode.SetConfig(*(_pActiveNode->GetDataVector()));
-			std::vector<dReal> tsrChainValues = _pActiveNode->GetTSRChainValues();
-			pNode.SetTSRChainValues(tsrChainValues);
-			pNode.SetParent(parentId);
-			parentId = _pForwardTree->GetSize();
-			_pForwardTree->AddNode(pNode);
-			AddNodeToForwardTree(_pActiveNode, duplicateID, parentId);	// add child nodes
-		}
+		rootId = _pActiveNode->GetID();
+		int index = _pActiveNode->GetParent();
+		if(index == -1)
+			break;
+		_pActiveNode = _pBackwardTree->GetNode(index);
 	}
-	//printf("\n");
+
+	_pActiveNode = _pBackwardTree->GetNode(rootId);
+	AddNodeToTreeNodeList(_pBackwardTree, _pActiveNode, -1, -1);	// add child nodes
+				/*RrtNode pNode(_pActiveNode->GetDataVector()->size(), false, _pForwardTree->GetSize());
+				pNode.SetConfig(*(_pActiveNode->GetDataVector()));
+				pNode.SetTSRChainValues(_pActiveNode->GetTSRChainValues());
+				pNode.SetParent(parentId);
+				(*treenodes)[parentId].AddChild(_pForwardTree->GetSize());
+				//printf("%d - ", parentId);
+				parentId = treenodes->size();
+				treenodes->push_back(pNode);
+				AddNodeToTreeNodeList(_pBackwardTree, _pActiveNode, duplicateID, parentId);	// add child nodes*/
+
+	printf("\n");
 	//printf("Start Copy");
 	//(*treenodes) = _pForwardTree->GetNodes();
-	for (int i=0; i<_pForwardTree->GetNodes().size(); i++) {
-		treenodes->push_back(_pForwardTree->GetNodes()[i]);
-	}
+	//for (int i=0; i<_pForwardTree->GetNodes().size(); i++) {
+	//	treenodes->push_back(_pForwardTree->GetNodes()[i]);
+	//}
 	//std::copy(_pForwardTree->GetNodes().begin(), _pForwardTree->GetNodes().end(), treenodes->begin());
 	//printf("Tree size %d \n", treenodes->size());
 	return true;
 }
 // recursively add back tree nodes to node list
-bool SoCBirrtPlanner::AddNodeToForwardTree(RrtNode* node, int duplicateID, int parentID) {
+bool SoCBirrtPlanner::AddNodeToTreeNodeList(NodeTree* tree, RrtNode* node, int duplicateID, int parentID) {
 	//printf("%d - ", parentID);
-	RrtNode pNode(node->GetDataVector()->size(), false, _pForwardTree->GetSize());
+	RrtNode pNode(node->GetDataVector()->size(), false, treenodes->size());
 	pNode.SetConfig(*(node->GetDataVector()));
 	std::vector<dReal> tsrChainValues = node->GetTSRChainValues();
 	pNode.SetTSRChainValues(tsrChainValues);
 	pNode.SetParent(parentID);
-	parentID = _pForwardTree->GetSize();
-	_pForwardTree->AddNode(pNode);
+	parentID = treenodes->size();
+	//_pForwardTree->AddNode(pNode);
+	treenodes->push_back(pNode);
 	std::vector<int> cids = node->GetChildren();	// children ids
 	for (int i=0; i<cids.size(); i++) {	// add child trees to new tree
-		if(cids[i] >= 0 && _pBackwardTree->GetNode(cids[i])->GetID() != duplicateID) {
-			AddNodeToForwardTree(_pBackwardTree->GetNode(cids[i]), -1, parentID);
+		if(cids[i] >= 0 && tree->GetNode(cids[i])->GetID() != duplicateID) {
+			AddNodeToTreeNodeList(tree, tree->GetNode(cids[i]), -1, parentID);
 		}
 	}
 	return true;

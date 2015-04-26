@@ -39,6 +39,7 @@ import time
 import sys
 
 
+
 if __name__ == "__main__":
       
     #load the environment if it is not already loaded
@@ -99,7 +100,7 @@ if __name__ == "__main__":
     T0_w = T0_object
 
     #get the TSR's offset frame in w coordinates
-    Tw_e1 = MakeTransform(rodrigues([pi/2, 0, 0]),mat([0, 0.20, 0.1]).T)
+    Tw_e1 = MakeTransform(rodrigues([pi/2, 0, 0]),mat([0, 0.0, 0.05]).T)
 
     #define bounds to only allow rotation of the hand about z axis and a small deviation in translation along the z axis
     Bw = mat([0, 0,   0, 0,   -0.02, 0.02,   0, 0,   0, 0,   -pi, pi])
@@ -118,7 +119,7 @@ if __name__ == "__main__":
     TSRChainString2 = SerializeTSRChain(0,1,0,1,TSRstring2,'NULL',[])
 
     #call the cbirrt planner, it will generate a file with the trajectory called 'cmovetraj.txt'
-    resp = probs_cbirrt.SendCommand('RunSoCBiRRT timelimit 60 goalobject juice goalvelocitymagnitude 0.001 planning_alpha 200 psample 0.25 %s %s'%(TSRChainString1,TSRChainString2))
+    resp = probs_cbirrt.SendCommand('RunSoCBiRRT timelimit 60 goalobject juice goalvelocitymagnitude 0.001 planning_alpha 500 psample 0.25 %s %s'%(TSRChainString1,TSRChainString2))
 #    probs_cbirrt.SendCommand('traj cmovetraj.txt')
     
 #    traj=RaveCreateTrajectory(orEnv,'BarrettWAM')
