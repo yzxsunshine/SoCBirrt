@@ -30,8 +30,13 @@
     \brief Implements the cbirrt problem class.
  */
 #include "stdafx.h"
+#include <queue>
+//#define SAVE_DATA
+
 
 std::vector<GraphHandlePtr> graphptrs;
+
+
 
 SoCBirrtProblem::SoCBirrtProblem(EnvironmentBasePtr penv) : ProblemInstance(penv)
 {
@@ -690,8 +695,8 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     double endTime = 0.0;
     double lastTime = 0.0;
     double sensorDeltaTime = 0.030; // 30 milisecond per frame
-    double velMag = 0.001;
-    double goalthreshold = 0.1;
+    double velMag = 0.001;	// magnitude of velocity
+    double goalthreshold = 0.15;	// palm size, safe area for the goal
 
     string filename = "cmovetraj.txt";
     string smoothtrajfilename;
@@ -699,8 +704,12 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 
     string goalObjectName;
     int isMergeTree = 0;
-    _planning_alpha = 10.0;
+    _planning_theta.resize(4, 0);
+    _planning_theta[0] = 2;
+    _execution_theta.resize(4, 0);
+    _execution_theta[0] = 0.11;
     int isScreenShot = 0;
+    dReal thickness = 0.05;	// size of box for sampling
     while(!sinput.eof()) {
         sinput >> cmd;
         if( !sinput )
@@ -838,9 +847,29 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 		{
 			   sinput >> goalObjectName;
 		}
-        else if( stricmp(cmd.c_str(), "planning_alpha") == 0 )
+        else if( stricmp(cmd.c_str(), "planning_theta") == 0 )
 		{
-			   sinput >> _planning_alpha;
+        	int num = 4;
+			   sinput >> num;
+			   cout << "planning params: " << num;
+			   _planning_theta.resize(num);
+			   for (int i=0; i<num; i++) {
+				   sinput >> _planning_theta[i];
+				   cout << " " << _planning_theta[i];
+			   }
+			   cout << std::endl;
+		}
+        else if( stricmp(cmd.c_str(), "execution_theta") == 0 )
+		{
+			int num = 4;
+			   sinput >> num;
+			   cout << "execution params: " << num;
+			   _execution_theta.resize(num);
+			   for (int i=0; i<num; i++) {
+				   sinput >> _execution_theta[i];
+				   cout << " " << _execution_theta[i];
+			   }
+			   cout << std::endl;
 		}
         else if( stricmp(cmd.c_str(), "goalthreshold") == 0 )
 		{
@@ -860,6 +889,9 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
         else if( stricmp(cmd.c_str(), "screenshot") == 0 ){
         	sinput >> isScreenShot;
         }
+        else if( stricmp(cmd.c_str(), "thickness") == 0 ){
+			sinput >> thickness;
+		}
         else break;
         if( !sinput ) {
             RAVELOG_DEBUG("failed\n");
@@ -966,10 +998,29 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     sc.SetInitGoal(goal);
     SoCBirrtPlanner::treenodes = new std::vector<RrtNode>();
     OpenRAVE::KinBodyPtr ball;
+    OpenRAVE::KinBodyPtr boxes;
+    std::vector<OBB> obbs;
     bool reachGoal = false;
+    InitializeRotationMatrixes();
+#ifdef SAVE_DATA
+    std::ofstream fs;
+    fs.open("data.txt", std::ofstream::out | std::ofstream::app);
+    if(!fs) {	// file not exist, create one
+    	fs.open("data.txt", std::ofstream::out);
+    }
+#endif
+    int iterCounter = 0;
     while (endTime - startTime < params->timelimit && !reachGoal) {
+    	printf("[socbirrtproblem.cpp] %d th iteration started\n", iterCounter);
     	// Generate new goal
     	RaveVector<dReal> newGoal;
+    	dReal transDist;
+    	std::vector<int> topNNodeIds;
+		std::vector<dReal> topNNodeDists;
+#ifdef SAVE_DATA
+    	dReal planningStartTime, planningEndTime, executeStartTime, executeEndTime;
+    	planningStartTime = timeGetThreadTime();
+#endif
     	dReal sigma;
     	{
     	    EnvironmentMutex::scoped_lock envlock(GetEnv()->GetMutex());
@@ -978,7 +1029,14 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
     	    	GetEnv()->Remove(ball);
     	    	ball->Destroy();
     	    }
+    	    if(boxes) {
+				GetEnv()->Remove(boxes);
+				boxes->Destroy();
+    	    }
     	    newGoal = sc.ReadSensorData(endTime);
+    	    TaskSpaceRegionChain tsrc;
+			tsrc.SetParameters(false, true, false);
+			tsrc.SetMimicBodyName("NULL");
 			TaskSpaceRegion tsr;
 			tsr.T0_w.trans = newGoal;
 			tsr.T0_w.rot.Set4(0, 0, 0, 1);
@@ -990,15 +1048,26 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 			tsr.Bw[5][1] = goalChains[0].TSRChain[0].Bw[5][1];//PI;
 
 			robot->GetActiveDOFValues(curConfig);
+
 			double estimated_time = 0.0;
 			// Calculate sigma
 			// first get transform of end effector
 	    	Transform T0_s = robot->GetActiveManipulator()->GetEndEffectorTransform();
 			std::vector<dReal> dx;
 			dReal distMag = tsr.DistanceToTSR(T0_s, dx);
-			dReal transDist = sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
-			dReal planningTime = EstimatePlanningTime(transDist, curConfig);
-			sigma = planningTime * sc.GetVelocityMagitude();
+			transDist = sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
+			topNNodeIds.resize(5, 0);
+			topNNodeDists.resize(5, -1.0);
+			GenerateNodesWorkSpaceData(newGoal, goalthreshold, topNNodeIds, topNNodeDists);	// generate work space value for tree nodes
+			// find nearest points
+#ifdef SAVE_DATA
+			fs << transDist << "\t" << SoCBirrtPlanner::treenodes->size() << "\t";
+			for (int ndi=0; ndi<topNNodeDists.size(); ndi++)
+				fs << topNNodeDists[ndi] << "\t";
+#endif
+			dReal planningTime = EstimatePlanningTime(transDist, topNNodeDists[0], curConfig);
+			dReal executionTime = EstimateExecutionTime(transDist, topNNodeDists[0], curConfig);
+			sigma = (planningTime + executionTime) / sensorDeltaTime * sc.GetVelocityMagitude();
 			printf("[socbirrtproblem.cpp-987] sigma: %f, dist:%f\n", sigma, transDist);
 
 			if(sigma < goalthreshold) {
@@ -1011,39 +1080,84 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 				tsr.Bw[2][0] = -sigma;
 				tsr.Bw[2][1] = sigma;
 				reachGoal = true;
+#ifdef SAVE_DATA
+				fs << 4 / 3 * PI * sigma * sigma * sigma << "\t";	// volume
+#endif
 			}
 			else {
 				RaveVector<dReal> dir, xaxis, axis;
 				dir.Set3(dx[0]/transDist, dx[1]/transDist, dx[2]/transDist);
 				xaxis.Set3(1, 0, 0);
 				// Set Bound, may change ball to a surface
-				tsr.Tw_e.trans.Set3(dir.x * sigma * 1.25, dir.y * sigma * 1.25, dir.z * sigma * 1.25 + 0.05);
+				tsr.Tw_e.trans.Set3(dir.x * (sigma + thickness*0.25), dir.y * (sigma + thickness), dir.z * (sigma + thickness) + 0.05);
 				dReal theta = acos(dir.dot3(xaxis));
 				axis = dir.Cross(xaxis);
 				axis = axis.normalize3() * sin(theta/2);
 
 
 				tsr.Tw_e.rot.Set4(axis.x, axis.y, axis.z, cos(theta/2));
-				tsr.Bw[0][0] = -0.25 * sigma;
-				tsr.Bw[0][1] = 0.25 * sigma;
-				tsr.Bw[1][0] = -0.25 * sigma;
-				tsr.Bw[1][1] = 0.25 * sigma;
-				tsr.Bw[2][0] = -0.25 * sigma;
-				tsr.Bw[2][1] = 0.25 * sigma;
+				tsr.Bw[0][0] = -thickness;
+				tsr.Bw[0][1] = thickness;
+				tsr.Bw[1][0] = -0.5 * sigma;
+				tsr.Bw[1][1] = 0.5 * sigma;
+				tsr.Bw[2][0] = -0.5 * sigma;
+				tsr.Bw[2][1] = 0.5 * sigma;
 			}
 			tsr.relativelinkname = "NULL";
 			tsr.relativebodyname = "NULL";
 			tsr.manipind = 0;
 			tsr.Initialize(GetEnv());
 
-			TaskSpaceRegionChain tsrc;
-			tsrc.SetParameters(false, true, false);
-			tsrc.SetMimicBodyName("NULL");
+
 			tsrc.AddTSR(tsr);
 			tsrc.Initialize(GetEnv());
 
 			std::vector<TaskSpaceRegionChain> tsrChains;
 			tsrChains.push_back(tsrc);
+			if(sigma >= goalthreshold) {
+				for(int ti=0; ti<4; ti++) {
+					TaskSpaceRegionChain tmptsrc;
+					tmptsrc.SetParameters(false, true, false);
+					tmptsrc.SetMimicBodyName("NULL");
+					TaskSpaceRegion tmptsr;
+					tmptsr.T0_w.trans = newGoal;
+					tmptsr.T0_w.rot.Set4(0, 0, 0, 1);
+					tmptsr.Bw[3][0] = goalChains[0].TSRChain[0].Bw[3][0];//-PI;
+					tmptsr.Bw[3][1] = goalChains[0].TSRChain[0].Bw[3][1];//PI;
+					tmptsr.Bw[4][0] = goalChains[0].TSRChain[0].Bw[4][0];//-PI;
+					tmptsr.Bw[4][1] = goalChains[0].TSRChain[0].Bw[4][1];//PI;
+					tmptsr.Bw[5][0] = goalChains[0].TSRChain[0].Bw[5][0];//-PI;
+					tmptsr.Bw[5][1] = goalChains[0].TSRChain[0].Bw[5][1];//PI;
+					RaveVector<dReal> dir, xaxis, axis;
+					dir.Set3(dx[0]/transDist, dx[1]/transDist, dx[2]/transDist);
+					dir = MultiplyMatrix(ti, dir);
+					xaxis.Set3(1, 0, 0);
+					tmptsr.Tw_e.trans.Set3(dir.x * (sigma + thickness*0.25), dir.y * (sigma + thickness), dir.z * (sigma + thickness) + 0.05);
+					dReal theta = acos(dir.dot3(xaxis));
+					axis = dir.Cross(xaxis);
+					axis = axis.normalize3() * sin(theta/2);
+
+
+					tmptsr.Tw_e.rot.Set4(axis.x, axis.y, axis.z, cos(theta/2));
+					tmptsr.Bw[0][0] = -thickness;
+					tmptsr.Bw[0][1] = thickness;
+					tmptsr.Bw[1][0] = -0.5 * sigma;
+					tmptsr.Bw[1][1] = 0.5 * sigma;
+					tmptsr.Bw[2][0] = -0.5 * sigma;
+					tmptsr.Bw[2][1] = 0.5 * sigma;
+					tmptsr.relativelinkname = "NULL";
+					tmptsr.relativebodyname = "NULL";
+					tmptsr.manipind = 0;
+					tmptsr.Initialize(GetEnv());
+					tmptsrc.AddTSR(tmptsr);
+					tsrChains.push_back(tmptsrc);
+				}
+#ifdef SAVE_DATA
+				fs << 5 * sigma * sigma * thickness * 2 << "\t";
+#endif
+			}
+
+
 			//tsrChains.push_back(goalChains[curGoalChainId]);
 			//sc.SetGoalTranform(goalChains[curGoalChainId].TSRChain[0].T0_w);
 			curGoalChainId++;
@@ -1058,6 +1172,11 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 			params->vinitialconfig = curConfig;
 			params->vgoalconfig = goalConfig;
 			params->vikguess.clear();
+#ifdef SAVE_DATA
+			params->timelimit = 10;
+#else
+			params->timelimit = planningTime;
+#endif
 			printf("[socbirrtproblem.cpp-RunSoCBiRRT-1034] Planning Started\n");
 			PlannerBasePtr _pTCplanner;
 			_pTCplanner = RaveCreatePlanner(GetEnv(),"SoCBirrt");
@@ -1079,23 +1198,7 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 			ptraj->Init(robot->GetActiveConfigurationSpecification());
 
 			bSuccess = _pTCplanner->PlanPath(ptraj);
-			printf("[socbirrtproblem.cpp-RunSoCBiRRT-1046 Planning Finished\n");
-			//std::vector<dReal> wayPt;
-			//ptraj->GetWaypoint(0, wayPt);
-			//printf("[socbirrtproblem.cpp-RunSoCBiRRT-1049] Start Waypoint");
-			//for (int p = 0; p<wayPt.size(); p++) {
-			//	printf(" %f", wayPt[p]);
-			//}
-			//printf("\n");
-			//ptraj->GetWaypoint(ptraj->GetNumWaypoints()-1, wayPt);
-			//printf("[socbirrtproblem.cpp-RunSoCBiRRT-1049] End Waypoint");
-			//for (int p = 0; p<wayPt.size(); p++) {
-			//	printf(" %f", wayPt[p]);
-			//}
-			//printf("\n");
-			// Merge Tree
-			//robot->GetController()->Reset();
-			robot->GetController()->SetPath(ptraj);
+			printf("[socbirrtproblem.cpp-RunSoCBiRRT-1046] Planning Finished\n");
 
 			if(bSuccess == PS_HasSolution)
 				_plannerState = PS_PlanSucceeded;
@@ -1106,6 +1209,7 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 			_plannerState = PS_Idle;
 
 			/* Reset joint limits */
+			printf("[socbirrtproblem.cpp-RunSoCBiRRT-1101] Reset joint limits\n");
 			for (int j=0; j<_limadj_joints.size(); j++)
 			{
 				joint = _limadj_joints[j];
@@ -1116,34 +1220,72 @@ int SoCBirrtProblem::RunSoCBirrt(ostream& sout, istream& sinput)
 
 			if(bSuccess != PS_HasSolution)
 			{
-				_pTCplanner->SendCommand(outputstream,command);
-				sout << 0 << " " << outputstream.str();
-				return -1;
+				//_pTCplanner->SendCommand(outputstream,command);
+				printf("[socbirrtproblem.cpp-RunSoCBiRRT-1120] No Solution\n");
+				//sout << 0 << " " << outputstream.str();
 			}
-
+			else {
+				printf("[socbirrtproblem.cpp-RunSoCBiRRT-1120] Set Path Start\n");
+				robot->GetController()->SetPath(ptraj);
+				printf("[socbirrtproblem.cpp-RunSoCBiRRT-1120] Set Path End\n");
+			}
+/*
+			obbs.clear();
+			for(int ti=0; ti<tsrc.TSRChain.size(); ti++) {
+				OBB obb;
+				obb.pos = tsrc.TSRChain[ti].Tw_e.trans;
+				obb.extents.Set3(tsrc.TSRChain[ti].Bw[0][0], tsrc.TSRChain[ti].Bw[1][0], tsrc.TSRChain[ti].Bw[2][0]);
+				geometry::RaveTransformMatrix<dReal> mat = geometry::matrixFromQuat(tsrc.TSRChain[ti].Tw_e.rot);
+				obb.right.Set3(mat.m[0], mat.m[1], mat.m[2]);
+				obb.dir.Set3(mat.m[4], mat.m[5], mat.m[6]);
+				obb.up.Set3(mat.m[8], mat.m[9], mat.m[10]);
+				obbs.push_back(obb);
+			}
+*/
     	}
+
+#ifdef SAVE_DATA
+    	planningEndTime = timeGetThreadTime();
+    	executeStartTime = planningEndTime;
+#endif
+
     	ball = RaveCreateKinBody(GetEnv(),"");
 		std::vector<Vector> spheres;
 		spheres.push_back(Vector(newGoal.x, newGoal.y, newGoal.z, sigma));
 		ball->InitFromSpheres(spheres, true);
 		ball->SetName("ball");
+
 		//KinBody::LinkPtr link = ball->GetLinks()[0];
 		//link->GetGeometry(0)->SetDiffuseColor(Vector(0.0,1.0,0.0));
 		GetEnv()->Add(ball);
-    	while(!robot->GetController()->IsDone()) {
+/*		boxes = RaveCreateKinBody(GetEnv(),"");
+		boxes->InitFromBoxes(obbs, true);
+		boxes->SetName("boxes");
+		GetEnv()->Add(boxes);
+*/
+    	while(bSuccess == PS_HasSolution && !robot->GetController()->IsDone()) {
     		 boost::this_thread::sleep(boost::posix_time::milliseconds(1));
     	}
+#ifdef SAVE_DATA
+    	executeEndTime = timeGetThreadTime();
+    	fs << planningEndTime - planningStartTime << "\t" << executeEndTime - executeStartTime << std::endl;
+#endif
     	endTime = timeGetThreadTime();
     	double deltTime = endTime - lastTime;
     	lastTime = endTime;
 
+    	printf("[socbirrtproblem.cpp] %d th iteration end\n", iterCounter);
+    	iterCounter++;
     	if(isScreenShot)
     		getchar();
     	//endTime = timeGetThreadTime();
     	//lastTime = endTime;
     }
     delete SoCBirrtPlanner::treenodes;
-
+#ifdef SAVE_DATA
+    fs.clear();
+    fs.close();
+#endif
 
     //WriteTraj(ptraj, filename);
     //_pTCplanner->SendCommand(outputstream,command);
@@ -1679,9 +1821,93 @@ bool SoCBirrtProblem::SetCamView(ostream& sout, istream& sinput)
     return true;
 }
 
-dReal SoCBirrtProblem::EstimatePlanningTime(dReal WSDist, std::vector<dReal>& q) {
-	dReal planningTime = 0.0;
-	planningTime += _planning_alpha * WSDist;
+dReal SoCBirrtProblem::EstimatePlanningTime(dReal WSDist, dReal closestDist, std::vector<dReal>& q) {
+	dReal planningTime = _planning_theta[0];
+	planningTime += _planning_theta[1] * WSDist;
+	planningTime += _planning_theta[2] * SoCBirrtPlanner::treenodes->size();
+	planningTime += _planning_theta[3] * closestDist;
 
 	return planningTime;
+}
+
+dReal SoCBirrtProblem::EstimateExecutionTime(dReal WSDist, dReal closestDist, std::vector<dReal>& q) {
+	dReal planningTime = _execution_theta[0];
+	planningTime += _execution_theta[1] * WSDist;
+	planningTime += _execution_theta[2] * SoCBirrtPlanner::treenodes->size();
+	planningTime += _execution_theta[3] * closestDist;
+	return planningTime;
+}
+
+struct NodeDist {
+	int nodeID;
+	dReal dist;
+};
+
+struct comparator {
+	bool operator() (NodeDist& n1, NodeDist& n2) {
+		if(n1.dist < n2.dist)
+			return true;
+		return false;
+	}
+};
+
+
+dReal EuclideanDistance(const RaveVector<dReal>& a, const RaveVector<dReal>& b) {
+	return sqrt((a-b).dot(a-b));	// for translation, as w is always 1, then, it will not affact the distance
+}
+
+void SoCBirrtProblem::GenerateNodesWorkSpaceData(const RaveVector<dReal>& goal, dReal palmSize, std::vector<int>& topNNodeIds, std::vector<dReal>& topNNodeDists) {
+	std::vector<dReal> curConfig;
+	int topN = topNNodeIds.size();
+	robot->GetActiveDOFValues(curConfig);
+	std::vector<RrtNode>::iterator iter = SoCBirrtPlanner::treenodes->begin();
+	std::priority_queue<NodeDist, std::vector<NodeDist>, comparator> maxHeap;
+	for (int i=0; iter != SoCBirrtPlanner::treenodes->end(); iter++, i++) {
+		robot->SetActiveDOFValues((*iter->GetDataVector()));
+		iter->wsTransform = robot->GetActiveManipulator()->GetEndEffectorTransform();
+		NodeDist nd;
+		nd.nodeID = i;
+		nd.dist = EuclideanDistance(iter->wsTransform.trans, goal);
+		if(maxHeap.size() < topN)
+			maxHeap.push(nd);
+		else if(maxHeap.top().dist > nd.dist) {
+			maxHeap.push(nd);
+			maxHeap.pop();	// remove current top and reorganize the heap
+		}
+	}
+	if(maxHeap.size() == topN) {
+		for(int i=0; i<topN; i++) {
+			topNNodeIds[topN-i-1] = maxHeap.top().nodeID;
+			topNNodeDists[topN-i-1] = maxHeap.top().dist;
+			maxHeap.pop();
+		}
+	}
+	robot->SetActiveDOFValues(curConfig);	// reset to init state
+}
+
+void SoCBirrtProblem::InitializeRotationMatrixes() {
+	//rotMats.clear();
+	rotMats[0][0][0] = cos(PI/3);	rotMats[0][0][1] = 0; rotMats[0][0][2] = -sin(PI/3);
+	rotMats[0][1][0] = 0;			rotMats[0][1][1] = 1; rotMats[0][1][2] = 0;
+	rotMats[0][2][0] = sin(PI/3);	rotMats[0][2][1] = 0; rotMats[0][2][2] = cos(PI/3);
+
+	rotMats[1][0][0] = cos(-PI/3);	rotMats[1][0][1] = 0; rotMats[1][0][2] = -sin(-PI/3);
+	rotMats[1][1][0] = 0;			rotMats[1][1][1] = 1; rotMats[1][1][2] = 0;
+	rotMats[1][2][0] = sin(-PI/3);	rotMats[1][2][1] = 0; rotMats[1][2][2] = cos(-PI/3);
+
+	rotMats[2][0][0] = cos(PI/3);	rotMats[2][0][1] = sin(PI/3); rotMats[2][0][2] = 0;
+	rotMats[2][1][0] = -sin(PI/3);	rotMats[2][1][1] = cos(PI/3); rotMats[2][1][2] = 0;
+	rotMats[2][2][0] = 0;			rotMats[2][2][1] = 0; rotMats[2][2][2] = 1;
+
+	rotMats[3][0][0] = cos(-PI/3);	rotMats[3][0][1] = sin(-PI/3); rotMats[3][0][2] = 0;
+	rotMats[3][1][0] = -sin(-PI/3);	rotMats[3][1][1] = cos(-PI/3); rotMats[3][1][2] = 0;
+	rotMats[3][2][0] = 0;			rotMats[3][2][1] = 0; rotMats[3][2][2] = 1;
+}
+
+RaveVector<dReal> SoCBirrtProblem::MultiplyMatrix(int matID, RaveVector<dReal> originVec) {
+	RaveVector<dReal> vec;
+	vec.x = rotMats[matID][0][0]*originVec.x + rotMats[matID][0][1]*originVec.y + rotMats[matID][0][2]*originVec.z;
+	vec.y = rotMats[matID][1][0]*originVec.x + rotMats[matID][1][1]*originVec.y + rotMats[matID][1][2]*originVec.z;
+	vec.z = rotMats[matID][2][0]*originVec.x + rotMats[matID][2][1]*originVec.y + rotMats[matID][2][2]*originVec.z;
+	return vec;
 }

@@ -92,6 +92,9 @@ private:
     std::vector<int> _iChildren;
 
     std::vector<dReal> vTSRChainValues;
+public:
+    Transform wsTransform;	// 6 dof vector represent
+    dReal wsDist;
 };
 
 

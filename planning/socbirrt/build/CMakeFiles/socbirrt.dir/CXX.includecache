@@ -12,15 +12,17 @@ stdafx.h
 
 /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/TaskSpaceRegion.h
 
-/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrt.cpp
-stdafx.h
-/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/stdafx.h
-
 /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrt.h
 sstream
 -
 
 /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrtparameters.h
+
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrtproblem.cpp
+stdafx.h
+/home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/stdafx.h
+queue
+-
 
 /home/jason/RBE595/FP/SoCBirrt/planning/socbirrt/socbirrtproblem.h
 SensorConfiguration.h

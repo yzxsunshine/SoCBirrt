@@ -43,8 +43,7 @@ def waitrobot(robot):
     while not robot.GetController().IsDone():
         time.sleep(0.01)
 
-if __name__ == "__main__":
-      
+if __name__ == "__main__": 
     #load the environment if it is not already loaded
     try:
         orEnv
@@ -101,12 +100,27 @@ if __name__ == "__main__":
     Tw_e1 = MakeTransform(rodrigues([0, 0, 0]),mat([0, 0.0, -0.05]).T)
 
     #define bounds to only allow rotation of the hand about z axis and a small deviation in translation along the z axis
-    Bw = mat([0, 0,   0, 0,   -0.02, 0.02,   0, 0,   0, 0,   0, 0])
+    Bw = mat([0, 0,   0, 0,   -0.02, 0.02,   -pi/2, pi/2,   -pi/2, pi/2,   0, 0])
 
     TSRstring1 = SerializeTSR(0,'NULL',T0_w,Tw_e1,Bw)
     TSRChainString1 = SerializeTSRChain(0,1,0,1,TSRstring1,'NULL',[])
-
-    resp = probs_cbirrt.SendCommand('RunSoCBiRRT timelimit 60 goalobject juice goalvelocitymagnitude 0.01 screenshot 0 mergetree 1 planning_alpha 50 psample 0.05 %s'%(TSRChainString1))
+    cmd = 'RunSoCBiRRT '
+    cmd = cmd + 'timelimit %d ' % (20)
+    cmd = cmd + 'goalobject %s ' % ('juice')
+    cmd = cmd + 'goalvelocitymagnitude %f ' % (0.0025)
+    cmd = cmd + 'thickness %f ' % (0.25)
+    cmd = cmd + 'screenshot %d ' % (0)
+    cmd = cmd + 'mergetree %d ' % (1)
+    cmd = cmd + 'planning_theta %d ' % (4)
+    #cmd = cmd + '1.836 100.641 0.032 0.085 '
+    cmd = cmd + '0.48 3.641 0 0 '
+    cmd = cmd + 'execution_theta %d ' % (4)
+    cmd = cmd + '0 0 0 0 '
+    #cmd = cmd + '0.33 0.101 0 0.223 '
+    cmd = cmd + 'goalthreshold %f ' % (0.2)
+    cmd = cmd + 'psample %f ' % (0.25)
+    cmd = cmd + '%s' % (TSRChainString1)
+    resp = probs_cbirrt.SendCommand(cmd)
     print "Press return to exit."
     sys.stdin.readline()
 

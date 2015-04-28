@@ -633,7 +633,6 @@ OpenRAVE::PlannerStatus SoCBirrtPlanner::PlanPath(TrajectoryBasePtr ptraj)
             	//printf("[socbirrt.cpp-PlanPath-633] AddRootConfiguration\n");
                 if(_pBackwardTree->_pMakeNext->AddRootConfiguration(_pBackwardTree,_parameters->vikguess) )
                     break;
-                if(timeGetThreadTime() - starttime > max_firstik_time)
                 {
                     RAVELOG_FATAL("Unable to find a goal IK solution in %f seconds, planner failed\n",(dReal)max_firstik_time);
                     _outputstream << "Unable to find a start IK solution in " << (dReal)max_firstik_time << " seconds, planner failed\n";

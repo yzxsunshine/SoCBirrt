@@ -33,6 +33,8 @@
 #define CPROBLEM_H
 
 #include "SensorConfiguration.h"
+
+
 /// Parses input from python and matlab and calls cbirrtplanner, also contains some other useful openrave functions.
 class SoCBirrtProblem : public ProblemInstance
 {
@@ -115,7 +117,13 @@ private:
     /// clears objects drawn by SoCBirrt planner and problem
     bool ClearDrawn(ostream& sout, istream& sinput);
 
-    dReal EstimatePlanningTime(dReal WSDist, std::vector<dReal>& q);
+    void GenerateNodesWorkSpaceData(const RaveVector<dReal>& goal, dReal palmSize, std::vector<int>& topNNodeIds, std::vector<dReal>& topNNodeDists);
+
+    dReal EstimatePlanningTime(dReal WSDist, dReal closestDist, std::vector<dReal>& q);
+    dReal EstimateExecutionTime(dReal WSDist, dReal closestDist, std::vector<dReal>& q);
+
+    void InitializeRotationMatrixes();
+    RaveVector<dReal> MultiplyMatrix(int matID, RaveVector<dReal> originVec);
 
     RobotBasePtr robot;
     string _strRRTPlannerName;
@@ -131,9 +139,10 @@ private:
     vector<KinBody::JointPtr> _limadj_joints; 
     vector<vector<dReal> > _limadj_lowers; 
     vector<vector<dReal> > _limadj_uppers;
-
+    dReal rotMats[4][3][3];
     // parameters to estimate planning time
-    dReal _planning_alpha;
+    std::vector<dReal> _planning_theta;
+    std::vector<dReal> _execution_theta;
 };
 
 #endif
