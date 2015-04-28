@@ -117,10 +117,23 @@ if __name__ == "__main__":
     cmd = cmd + 'execution_theta %d ' % (4)
     cmd = cmd + '0 0 0 0 '
     #cmd = cmd + '0.33 0.101 0 0.223 '
-    cmd = cmd + 'goalthreshold %f ' % (0.2)
+    cmd = cmd + 'goalthreshold %f ' % (0.15)
     cmd = cmd + 'psample %f ' % (0.25)
     cmd = cmd + '%s' % (TSRChainString1)
+
+    recorder = RaveCreateModule(orEnv,'viewerrecorder')
+    orEnv.AddModule(recorder,'')
+    codecs = recorder.SendCommand('GetCodecs') # linux only
+    filename = 'openrave.mpg'
+    codec = 13 # mpeg4
+    recorder.SendCommand('Start 640 480 30 codec %d timing realtime filename %s\nviewer %s'%(codec,filename,orEnv.GetViewer().GetName()))
+    time.sleep(5)
+
     resp = probs_cbirrt.SendCommand(cmd)
+
+    recorder.SendCommand('Stop') # stop the video
+    orEnv.Remove(recorder) # remove the recorder
+
     print "Press return to exit."
     sys.stdin.readline()
 
